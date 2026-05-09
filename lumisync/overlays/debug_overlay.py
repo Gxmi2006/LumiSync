@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import logging
 from queue import Empty, Queue
 from threading import Event, Thread
+from typing import Any
 import tkinter as tk
 
 from lumisync.core.color import RGB
@@ -19,6 +20,7 @@ class OverlayData:
     fps: float
     status: str
     controller: str
+    visual_debug: Any = None
 
 
 class DebugOverlay:
@@ -134,4 +136,95 @@ class DebugOverlay:
             fill="#ffffff",
             font=("Segoe UI", 9),
         )
+        DebugOverlay._draw_visual_debug(canvas, data)
+
+    @staticmethod
+    def _draw_visual_debug(canvas: tk.Canvas, data: OverlayData) -> None:
+        debug = data.visual_debug
+        if debug is None:
+            return
+
+        region = data.region
+        boxes = getattr(debug, "region_boxes", ()) or ()
+        selected = getattr(debug, "selected_bbox", None)
+
+        for idx, box in enumerate(boxes[:8]):
+            x, y, w, h, score = box
+            left = int(x * region.width)
+            top = int(y * region.height)
+            right = int((x + w) * region.width)
+            bottom = int((y + h) * region.height)
+            outline = "#FFFFFF" if idx == 0 else "#22D3EE"
+            width_px = 3 if idx == 0 else 2
+            canvas.create_rectangle(left, top, right, bottom, outline=outline, width=width_px)
+            canvas.create_rectangle(left, max(36, top - 18), left + 74, max(54, top), fill="#101010", outline=outline)
+            canvas.create_text(
+                left + 5,
+                max(45, top - 9),
+                anchor="w",
+                text=f"VP {score:.2f}",
+                fill="#ffffff",
+                font=("Segoe UI", 8),
+            )
+
+        if selected is not None:
+            x, y, w, h = selected
+            canvas.create_rectangle(
+                int(x * region.width),
+                int(y * region.height),
+                int((x + w) * region.width),
+                int((y + h) * region.height),
+                outline="#FB7185",
+                width=1,
+                dash=(4, 3),
+            )
+
+        palette = getattr(debug, "palette", ()) or ()
+        if palette:
+            swatch = 18
+            x0 = 8
+            y0 = region.height - swatch - 8
+            for idx, color in enumerate(palette[:6]):
+                x = x0 + idx * (swatch + 5)
+                canvas.create_rectangle(
+                    x,
+                    y0,
+                    x + swatch,
+                    y0 + swatch,
+                    fill=color.to_hex(),
+                    outline="#101010",
+                )
+
+        saliency_grid = getattr(debug, "saliency_grid", ()) or ()
+        if saliency_grid:
+            grid_w = len(saliency_grid[0]) if saliency_grid[0] else 0
+            grid_h = len(saliency_grid)
+            if grid_w and grid_h:
+                cell = 4
+                x0 = max(8, region.width - grid_w * cell - 8)
+                y0 = 42
+                for row_idx, row in enumerate(saliency_grid):
+                    for col_idx, value in enumerate(row):
+                        if value < 12:
+                            continue
+                        color = _heat_color(value)
+                        canvas.create_rectangle(
+                            x0 + col_idx * cell,
+                            y0 + row_idx * cell,
+                            x0 + (col_idx + 1) * cell,
+                            y0 + (row_idx + 1) * cell,
+                            fill=color,
+                            outline="",
+                        )
+
+
+def _heat_color(value: int) -> str:
+    value = max(0, min(255, int(value)))
+    if value < 96:
+        return f"#{0:02X}{value + 64:02X}{255:02X}"
+    if value < 180:
+        red = int((value - 96) / 84 * 255)
+        return f"#{red:02X}{255:02X}{120:02X}"
+    green = max(0, 255 - int((value - 180) / 75 * 180))
+    return f"#{255:02X}{green:02X}{80:02X}"
 

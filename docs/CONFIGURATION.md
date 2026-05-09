@@ -9,6 +9,7 @@ LumiSync uses TOML because it is human-editable, diff-friendly, and expressive e
 - `[monitor]`: monitor index and future edge sampling options.
 - `[window]`: foreground/named window matching.
 - `[processing]`: downscale, thresholds, quantization, saturation/brightness.
+- `[visual_priority]`: saliency-driven focal region extraction and scoring.
 - `[smoothing]`: transition strength and future curve selection.
 - `[rgb]`: update throttling, reconnect interval, device matching.
 - `[aura]`: Aura SDK enablement and device types.
@@ -32,6 +33,32 @@ title_contains = ""
 ```
 
 Blank window filters mean "use the foreground window." Set either field to target a specific app.
+
+## Visual Priority
+
+```toml
+[visual_priority]
+enabled = true
+saliency_method = "hybrid"
+saliency_threshold = 0.34
+selected_regions = 3
+glow_weight = 1.25
+center_weight = 0.70
+temporal_weight = 0.35
+debug_regions = true
+debug_saliency_map = true
+debug_palette = true
+```
+
+This mode keeps ambient lighting focused on visually important objects instead of simple frame averages. It is designed for cases like neon rings, magic effects, HUD highlights, anime energy effects, bright weapons, and cinematic focal objects against dark backgrounds.
+
+Use these tuning rules:
+
+- Increase `glow_weight` for neon or bloom-heavy scenes.
+- Increase `center_weight` for films, anime, and games where focal objects sit near center.
+- Lower `saliency_threshold` when important regions are missed.
+- Raise `min_region_area_ratio` if small UI icons are selected too often.
+- Disable `use_kmeans` unless you need more expensive clustering experiments.
 
 ## Gaming Profile
 

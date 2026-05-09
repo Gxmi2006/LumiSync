@@ -11,13 +11,14 @@ import time
 from lumisync.effects.audio_reactive import AudioPulseProvider
 from lumisync.capture.region_capture import ScreenCapturer, compute_capture_region
 from lumisync.core.color import BLACK, RGB
-from lumisync.processing.palette_extraction import DominantColorExtractor
+from lumisync.processing.palette_extraction import PaletteExtractor
 from lumisync.core.config import Config, load_config
 from lumisync.backends.backend_manager import ControllerManager
 from lumisync.overlays.debug_overlay import DebugOverlay, OverlayData
 from lumisync.ui.hotkeys import HotkeyManager
 from lumisync.core.logging_setup import setup_logging
 from lumisync.core.smoothing import ColorSmoother
+from lumisync.diagnostics.diagnostics_report import DiagnosticsReport
 from lumisync.utils.startup import install_startup_shortcut, reconcile_startup, uninstall_startup_shortcut
 from lumisync.ui.tray import TrayIcon
 from lumisync.capture.window_capture import WindowFinder
@@ -47,7 +48,11 @@ class LumiSyncApp:
 
         self.window_finder = WindowFinder(self.config.window)
         self.capturer = ScreenCapturer()
-        self.extractor = DominantColorExtractor(self.config.processing, self.config.gradient)
+        self.extractor = PaletteExtractor(
+            self.config.processing,
+            self.config.gradient,
+            self.config.visual_priority,
+        )
         self.smoother = ColorSmoother(self.config.smoothing)
         self.controllers = ControllerManager(self.config)
         self.audio = AudioPulseProvider(self.config.audio_pulse)
@@ -178,7 +183,7 @@ class LumiSyncApp:
         self.state.last_color = smoothed
         self.tray.update_color(smoothed)
         self._set_status("running" if updated else "running")
-        self._update_overlay(region, smoothed)
+        self._update_overlay(region, smoothed, sample.visual_debug)
 
     def _reload_config(self) -> None:
         try:
@@ -190,7 +195,11 @@ class LumiSyncApp:
         debug_was_enabled = self.overlay.enabled
         self.config = new_config
         self.window_finder.update_config(new_config.window)
-        self.extractor.update_config(new_config.processing, new_config.gradient)
+        self.extractor.update_config(
+            new_config.processing,
+            new_config.gradient,
+            new_config.visual_priority,
+        )
         self.smoother.update_config(new_config.smoothing)
         self.controllers.update_config(new_config)
         self.audio.update_config(new_config.audio_pulse)
@@ -202,7 +211,7 @@ class LumiSyncApp:
             self.overlay.stop()
         LOGGER.info("Config reloaded")
 
-    def _update_overlay(self, region, color: RGB) -> None:
+    def _update_overlay(self, region, color: RGB, visual_debug=None) -> None:
         self.overlay.update(
             OverlayData(
                 region=region,
@@ -210,6 +219,7 @@ class LumiSyncApp:
                 fps=self.state.fps,
                 status=self.state.status,
                 controller=self.controllers.name,
+                visual_debug=visual_debug,
             )
         )
 
@@ -237,7 +247,12 @@ class LumiSyncApp:
 def run_from_args(args: argparse.Namespace) -> int:
     config_path = Path(args.config).resolve() if args.config else None
     config = load_config(config_path)
-    log_path = setup_logging(config.app.log_level)
+    log_path = setup_logging(
+        config.logging.level or config.app.log_level,
+        config.logging.max_bytes,
+        config.logging.backup_count,
+        console_enabled=not args.diagnostics,
+    )
     LOGGER.info("Logging to %s", log_path)
 
     if args.install_startup:
@@ -260,6 +275,12 @@ def run_from_args(args: argparse.Namespace) -> int:
                 f"rect={rect.left},{rect.top},{rect.width}x{rect.height} "
                 f"class={item.class_name!r} title={item.title!r}"
             )
+        return 0
+    if args.diagnostics:
+        manager = ControllerManager(config)
+        report = manager.initialize()
+        print(DiagnosticsReport(config=config, backend_report=report).to_markdown())
+        manager.close()
         return 0
     if args.test_color:
         color = RGB.from_hex(args.test_color)

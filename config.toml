@@ -62,6 +62,36 @@ brightness_multiplier = 0.88
 minimum_mask_pixels = 24
 ignore_letterbox_bars = true
 
+[visual_priority]
+# Intelligent Visual Priority Engine. When enabled, LumiSync samples visually
+# important focal regions instead of the whole frame.
+enabled = true
+saliency_method = "hybrid"          # hybrid, spectral_residual
+saliency_sensitivity = 1.15
+saliency_threshold = 0.34
+min_region_area_ratio = 0.0025
+max_region_area_ratio = 0.55
+max_regions = 8
+selected_regions = 3
+saturation_weight = 1.35
+brightness_weight = 1.00
+contrast_weight = 0.85
+glow_weight = 1.25
+edge_weight = 0.55
+size_weight = 0.45
+center_weight = 0.70
+motion_weight = 0.25
+temporal_weight = 0.35
+region_padding_ratio = 0.035
+color_percentile = 0.72
+saturation_power = 1.8
+brightness_power = 1.25
+use_kmeans = false
+kmeans_clusters = 3
+debug_regions = true
+debug_saliency_map = true
+debug_palette = true
+
 [smoothing]
 strength = 0.62
 minimum_step = 1
@@ -100,6 +130,9 @@ opacity = 0.80
 write_startup_report = true
 include_monitor_report = true
 include_backend_report = true
+# false keeps startup fast in auto mode: Aura first, OpenRGB only if Aura fails.
+# true probes every backend for a fuller report.
+probe_all_backends = false
 
 [startup]
 enabled = false

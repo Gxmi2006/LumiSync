@@ -584,15 +584,39 @@ class ControllerManager:
         self._last_attempt = time.monotonic()
         self.close()
 
-        aura_result, aura_controller = self._probe_controller(
-            AuraController(self.config.rgb, self.config.aura)
-        )
-        openrgb_result, openrgb_controller = self._probe_controller(
-            OpenRgbController(self.config.rgb, self.config.openrgb)
-        )
-
         active_controller: RgbController | None = None
         choice = self.config.app.controller.lower()
+
+        aura_result = self._skipped_result("aura", "Aura", choice)
+        openrgb_result = self._skipped_result("openrgb", "OpenRGB", choice)
+        aura_controller: RgbController | None = None
+        openrgb_controller: RgbController | None = None
+
+        if self._selection_allows("aura", choice):
+            aura_result, aura_controller = self._probe_controller(
+                AuraController(self.config.rgb, self.config.aura)
+            )
+
+        should_probe_openrgb = (
+            self._selection_allows("openrgb", choice)
+            and (
+                choice == "openrgb"
+                or aura_controller is None
+                or self.config.diagnostics.probe_all_backends
+            )
+        )
+        if should_probe_openrgb:
+            openrgb_result, openrgb_controller = self._probe_controller(
+                OpenRgbController(self.config.rgb, self.config.openrgb)
+            )
+        elif self._selection_allows("openrgb", choice) and aura_controller is not None:
+            openrgb_result = BackendProbeResult(
+                key="openrgb",
+                label="OpenRGB",
+                status="not probed",
+                detail="Aura is available and selected first; set diagnostics.probe_all_backends=true to probe OpenRGB too",
+            )
+
         if aura_controller and self._selection_allows("aura", choice):
             active_controller = aura_controller
             if openrgb_controller:
@@ -619,6 +643,15 @@ class ControllerManager:
             aura=aura_result,
             openrgb=openrgb_result,
             active_backend=self.active_backend,
+        )
+
+    @staticmethod
+    def _skipped_result(backend_key: str, label: str, choice: str) -> BackendProbeResult:
+        return BackendProbeResult(
+            key=backend_key,
+            label=label,
+            status="disabled",
+            detail=f"Skipped because app.controller is {choice!r}",
         )
 
     def _probe_controller(

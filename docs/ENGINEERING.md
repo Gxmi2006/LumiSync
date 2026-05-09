@@ -5,6 +5,7 @@
 - Capture smaller regions whenever possible.
 - Downscale before any color analysis.
 - Use NumPy masks and histograms instead of Python loops.
+- Keep visual-priority saliency maps at the configured downscaled resolution.
 - Skip backend writes when color delta is below threshold.
 - Add adaptive FPS: high FPS during scene changes, low FPS during static frames.
 
@@ -66,6 +67,7 @@ Detect whether the frame changed enough to process. Use low-res frame difference
 - Use HSV masks for saturation/value filtering.
 - Keep quantization bin counts reasonable.
 - Use weighted histograms before considering k-means.
+- Prefer the hybrid saliency heuristic over OpenCV-contrib saliency APIs for predictable dependencies.
 
 ## Backend Dispatch
 

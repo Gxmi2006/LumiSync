@@ -71,6 +71,36 @@ class ProcessingConfig:
 
 
 @dataclass(slots=True)
+class VisualPriorityConfig:
+    enabled: bool = True
+    saliency_method: str = "hybrid"  # hybrid, spectral_residual
+    saliency_sensitivity: float = 1.15
+    saliency_threshold: float = 0.34
+    min_region_area_ratio: float = 0.0025
+    max_region_area_ratio: float = 0.55
+    max_regions: int = 8
+    selected_regions: int = 3
+    saturation_weight: float = 1.35
+    brightness_weight: float = 1.00
+    contrast_weight: float = 0.85
+    glow_weight: float = 1.25
+    edge_weight: float = 0.55
+    size_weight: float = 0.45
+    center_weight: float = 0.70
+    motion_weight: float = 0.25
+    temporal_weight: float = 0.35
+    region_padding_ratio: float = 0.035
+    color_percentile: float = 0.72
+    saturation_power: float = 1.8
+    brightness_power: float = 1.25
+    use_kmeans: bool = False
+    kmeans_clusters: int = 3
+    debug_regions: bool = True
+    debug_saliency_map: bool = True
+    debug_palette: bool = True
+
+
+@dataclass(slots=True)
 class SmoothingConfig:
     strength: float = 0.62
     minimum_step: int = 1
@@ -131,6 +161,22 @@ class GradientConfig:
 
 
 @dataclass(slots=True)
+class DiagnosticsConfig:
+    write_startup_report: bool = True
+    include_monitor_report: bool = True
+    include_backend_report: bool = True
+    probe_all_backends: bool = False
+
+
+@dataclass(slots=True)
+class LoggingConfig:
+    level: str = "INFO"
+    file: str = "%APPDATA%/LumiSync/logs/lumisync.log"
+    max_bytes: int = 1_000_000
+    backup_count: int = 3
+
+
+@dataclass(slots=True)
 class StartupConfig:
     enabled: bool = False
     shortcut_name: str = "LumiSync.lnk"
@@ -143,12 +189,15 @@ class Config:
     window: WindowConfig = field(default_factory=WindowConfig)
     capture: CaptureConfig = field(default_factory=CaptureConfig)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    visual_priority: VisualPriorityConfig = field(default_factory=VisualPriorityConfig)
     smoothing: SmoothingConfig = field(default_factory=SmoothingConfig)
     rgb: RgbConfig = field(default_factory=RgbConfig)
     aura: AuraConfig = field(default_factory=AuraConfig)
     openrgb: OpenRgbConfig = field(default_factory=OpenRgbConfig)
     audio_pulse: AudioPulseConfig = field(default_factory=AudioPulseConfig)
     gradient: GradientConfig = field(default_factory=GradientConfig)
+    diagnostics: DiagnosticsConfig = field(default_factory=DiagnosticsConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
     startup: StartupConfig = field(default_factory=StartupConfig)
 
 

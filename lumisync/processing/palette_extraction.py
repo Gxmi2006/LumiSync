@@ -7,7 +7,8 @@ import cv2
 import numpy as np
 
 from lumisync.core.color import RGB
-from lumisync.core.config import GradientConfig, ProcessingConfig
+from lumisync.core.config import GradientConfig, ProcessingConfig, VisualPriorityConfig
+from lumisync.processing.visual_priority import VisualPriorityDebug, VisualPriorityEngine
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,24 +19,47 @@ class ColorSample:
     confidence: float
     pixel_count: int
     region_colors: tuple[RGB, ...] = ()
+    visual_debug: VisualPriorityDebug | None = None
 
 
-class DominantColorExtractor:
-    def __init__(self, processing: ProcessingConfig, gradient: GradientConfig) -> None:
+class PaletteExtractor:
+    def __init__(
+        self,
+        processing: ProcessingConfig,
+        gradient: GradientConfig,
+        visual_priority: VisualPriorityConfig,
+    ) -> None:
         self.processing = processing
         self.gradient = gradient
+        self.visual_priority = visual_priority
+        self.visual_engine = VisualPriorityEngine(processing, visual_priority)
 
     def update_config(
         self,
         processing: ProcessingConfig,
         gradient: GradientConfig,
+        visual_priority: VisualPriorityConfig,
     ) -> None:
         self.processing = processing
         self.gradient = gradient
+        self.visual_priority = visual_priority
+        self.visual_engine.update_config(processing, visual_priority)
 
     def extract(self, rgb_image: np.ndarray) -> ColorSample | None:
         if rgb_image.size == 0:
             return None
+
+        if self.visual_priority.enabled:
+            visual = self.visual_engine.extract(rgb_image)
+            if visual is not None:
+                return ColorSample(
+                    color=visual.color,
+                    confidence=visual.confidence,
+                    pixel_count=visual.pixel_count,
+                    region_colors=visual.region_colors,
+                    visual_debug=visual.debug,
+                )
+            LOGGER.debug("Visual priority extraction produced no result; falling back")
 
         if self.gradient.enabled and self.gradient.regions > 1:
             return self._extract_multi_region(rgb_image)
@@ -135,4 +159,7 @@ class DominantColorExtractor:
             (target_width, target_height),
             interpolation=cv2.INTER_AREA,
         )
+
+
+DominantColorExtractor = PaletteExtractor
 
