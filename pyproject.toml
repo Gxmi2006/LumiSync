@@ -27,11 +27,7 @@ dependencies = [
 
 [project.scripts]
 lumisync = "lumisync.__main__:main"
-lumisync-setup = "run_lumisync_setup:main"
 konsl-aura-sync = "lumisync.__main__:main"
-
-[tool.setuptools]
-py-modules = ["run_lumisync", "run_lumisync_setup", "run_konsl_aura_sync"]
 
 [tool.setuptools.packages.find]
 where = ["."]

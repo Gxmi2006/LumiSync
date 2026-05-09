@@ -47,17 +47,7 @@ python -m lumisync --config .\config.toml
 
 Put a game, video, browser, or emulator window in focus.
 
-## 5. Choose Your Theme
-
-Run the setup wizard if you want LumiSync to choose the right config for your taste:
-
-```powershell
-python .\run_lumisync_setup.py
-```
-
-It asks about mood, multicolor keyboard output, content type, intensity, and OpenRGB device preference.
-
-## 6. Tune A Window
+## 5. Tune A Window
 
 ```powershell
 python -m lumisync --config .\config.toml --debug-overlay
@@ -79,7 +69,7 @@ height_ratio = 0.82
 
 Press `Ctrl+Alt+R` to reload config.
 
-## 7. Multi-Color Keyboard Output
+## 6. Multi-Color Keyboard Output
 
 The default config sends a calmer 3-color cinematic palette to OpenRGB zones or LEDs when the device supports it:
 
