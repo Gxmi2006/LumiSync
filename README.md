@@ -87,6 +87,28 @@ To see what LumiSync detected:
 python -m lumisync --diagnostics
 ```
 
+Optional setup wizard:
+
+```powershell
+python .\run_lumisync_setup.py
+```
+
+The wizard asks what mood you want, whether you like multicolor keyboard output, what you mostly watch/play, how intense it should feel, and whether OpenRGB should prefer keyboard/laptop devices or use every detected RGB device.
+
+## Setup Wizard Questions
+
+The setup wizard is designed for first-time users who do not want to edit TOML by hand.
+
+| Question | Choices |
+| --- | --- |
+| What mood do you want? | Cinematic, Balanced, Vivid, Low Power |
+| Do you want multiple colors? | Elegant multicolor, Single color, Auto |
+| What do you mostly watch/play? | Movies / anime, Games, Desktop / browser |
+| How intense should it feel? | Subtle, Normal, Bold |
+| OpenRGB device preference | Prefer keyboard/laptop devices, Use all OpenRGB devices |
+
+The recommended default is **Cinematic + Elegant multicolor + Subtle**, which keeps LumiSync smooth and premium rather than flashy.
+
 Expected backend behavior:
 
 ```text
@@ -389,12 +411,19 @@ Output:
 
 ```text
 dist\LumiSync\LumiSync.exe
+dist\LumiSync\LumiSync Setup.exe
 ```
 
 Run the packaged app:
 
 ```powershell
 .\dist\LumiSync\LumiSync.exe --diagnostics
+```
+
+Run the packaged setup wizard:
+
+```powershell
+.\dist\LumiSync\"LumiSync Setup.exe"
 ```
 
 ## Architecture
