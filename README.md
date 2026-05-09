@@ -118,12 +118,88 @@ Python libraries:
 
 ## Installation
 
+````markdown
+# PowerShell Fix for `Activate.ps1` Script Error
+
+If you see an error like:
+
+```powershell
+running scripts is disabled on this system
+````
+
+PowerShell is blocking virtual environment activation scripts.
+
+---
+
+## Fix (Recommended)
+
+Open **PowerShell** and run:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+When prompted, type:
+
+```powershell
+Y
+```
+
+Then activate the virtual environment again:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+You should now see:
+
+```powershell
+(.venv) PS C:\...
+```
+
+---
+
+## Temporary Fix (No Permanent Changes)
+
+If you do not want to change the system policy permanently:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process
+```
+
+Then activate:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+This only affects the current PowerShell session.
+
+---
+
+## Full Setup Commands
+
 ```powershell
 py -3.11 -m venv .venv
+
 .\.venv\Scripts\Activate.ps1
+
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+
+python -m pip install -r requirements.txt
 ```
+
+---
+
+## Why This Happens
+
+Windows PowerShell blocks unsigned local scripts by default for security reasons.
+
+`Activate.ps1` is considered a script, so PowerShell prevents it from running until execution policy allows local scripts.
+
+```
+```
+
 
 Run LumiSync:
 
