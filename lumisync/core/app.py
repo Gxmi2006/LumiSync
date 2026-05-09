@@ -52,6 +52,7 @@ class LumiSyncApp:
             self.config.processing,
             self.config.gradient,
             self.config.visual_priority,
+            self.config.palette,
         )
         self.smoother = ColorSmoother(self.config.smoothing)
         self.controllers = ControllerManager(self.config)
@@ -199,6 +200,7 @@ class LumiSyncApp:
             new_config.processing,
             new_config.gradient,
             new_config.visual_priority,
+            new_config.palette,
         )
         self.smoother.update_config(new_config.smoothing)
         self.controllers.update_config(new_config)

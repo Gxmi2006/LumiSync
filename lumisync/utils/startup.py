@@ -35,7 +35,7 @@ def install_startup_shortcut(config: Config, config_path: Path | None) -> Path:
         args.extend(["--config", str(config_path)])
     shortcut.Arguments = " ".join(_quote_arg(arg) for arg in args)
     shortcut.WorkingDirectory = str(Path.cwd())
-    shortcut.Description = "Lightweight ambient RGB synchronization engine for Windows"
+    shortcut.Description = "Lightweight OpenRGB ambient lighting for Windows"
     shortcut.Save()
     LOGGER.info("Installed Startup shortcut: %s", shortcut_path)
     return shortcut_path

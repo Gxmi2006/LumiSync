@@ -7,7 +7,12 @@ import cv2
 import numpy as np
 
 from lumisync.core.color import RGB
-from lumisync.core.config import GradientConfig, ProcessingConfig, VisualPriorityConfig
+from lumisync.core.config import GradientConfig, PaletteConfig, ProcessingConfig, VisualPriorityConfig
+from lumisync.processing.palette_engine import (
+    PaletteResult,
+    extract_scene_harmony_palette,
+    make_output_palette,
+)
 from lumisync.processing.visual_priority import VisualPriorityDebug, VisualPriorityEngine
 
 LOGGER = logging.getLogger(__name__)
@@ -28,21 +33,26 @@ class PaletteExtractor:
         processing: ProcessingConfig,
         gradient: GradientConfig,
         visual_priority: VisualPriorityConfig,
+        palette: PaletteConfig,
     ) -> None:
         self.processing = processing
         self.gradient = gradient
         self.visual_priority = visual_priority
+        self.palette = palette
         self.visual_engine = VisualPriorityEngine(processing, visual_priority)
+        self._previous_scene_color: RGB | None = None
 
     def update_config(
         self,
         processing: ProcessingConfig,
         gradient: GradientConfig,
         visual_priority: VisualPriorityConfig,
+        palette: PaletteConfig,
     ) -> None:
         self.processing = processing
         self.gradient = gradient
         self.visual_priority = visual_priority
+        self.palette = palette
         self.visual_engine.update_config(processing, visual_priority)
 
     def extract(self, rgb_image: np.ndarray) -> ColorSample | None:
@@ -51,20 +61,59 @@ class PaletteExtractor:
 
         if self.visual_priority.enabled:
             visual = self.visual_engine.extract(rgb_image)
-            if visual is not None:
+            if visual is not None and visual.confidence >= self.palette.minimum_focal_confidence:
+                region_colors = make_output_palette(
+                    visual.color,
+                    visual.region_colors,
+                    self.palette,
+                )
                 return ColorSample(
                     color=visual.color,
                     confidence=visual.confidence,
                     pixel_count=visual.pixel_count,
-                    region_colors=visual.region_colors,
-                    visual_debug=visual.debug,
+                    region_colors=region_colors,
+                    visual_debug=self._with_palette(visual.debug, region_colors),
                 )
-            LOGGER.debug("Visual priority extraction produced no result; falling back")
+            if visual is not None:
+                LOGGER.debug(
+                    "Visual priority confidence %.3f below %.3f; using scene harmony fallback",
+                    visual.confidence,
+                    self.palette.minimum_focal_confidence,
+                )
+            else:
+                LOGGER.debug("Visual priority extraction produced no result; falling back")
+
+        if self.palette.fallback_mode.lower() == "scene_harmony":
+            harmony = extract_scene_harmony_palette(
+                rgb_image,
+                self.processing,
+                self.visual_priority,
+                self.palette,
+            )
+            if harmony is not None:
+                harmony = self._stabilize_scene_result(harmony)
+                return ColorSample(
+                    color=harmony.color,
+                    confidence=harmony.confidence,
+                    pixel_count=harmony.pixel_count,
+                    region_colors=harmony.palette,
+                    visual_debug=self._scene_debug(harmony.palette),
+                )
 
         if self.gradient.enabled and self.gradient.regions > 1:
             return self._extract_multi_region(rgb_image)
 
-        return self._extract_single(rgb_image)
+        sample = self._extract_single(rgb_image)
+        if sample is None:
+            return None
+        region_colors = make_output_palette(sample.color, sample.region_colors, self.palette)
+        return ColorSample(
+            color=sample.color,
+            confidence=sample.confidence,
+            pixel_count=sample.pixel_count,
+            region_colors=region_colors,
+            visual_debug=sample.visual_debug,
+        )
 
     def _extract_multi_region(self, rgb_image: np.ndarray) -> ColorSample | None:
         pieces = self._split_regions(rgb_image)
@@ -85,7 +134,11 @@ class PaletteExtractor:
             color=RGB.from_iterable(avg),
             confidence=confidence,
             pixel_count=total_pixels,
-            region_colors=tuple(sample.color for sample in valid),
+            region_colors=make_output_palette(
+                RGB.from_iterable(avg),
+                tuple(sample.color for sample in valid),
+                self.palette,
+            ),
         )
 
     def _split_regions(self, rgb_image: np.ndarray) -> list[np.ndarray]:
@@ -146,6 +199,46 @@ class PaletteExtractor:
 
         confidence = float(histogram[best_key] / max(0.001, histogram.sum()))
         return ColorSample(color=color, confidence=confidence, pixel_count=pixel_count)
+
+    def _stabilize_scene_result(self, result: PaletteResult) -> PaletteResult:
+        color = result.color
+        if self._previous_scene_color is not None and result.confidence < 0.55:
+            color = self._previous_scene_color.lerp(result.color, 0.68)
+        self._previous_scene_color = color
+        palette = make_output_palette(color, result.palette, self.palette)
+        return PaletteResult(
+            color=color,
+            confidence=result.confidence,
+            pixel_count=result.pixel_count,
+            palette=palette,
+        )
+
+    @staticmethod
+    def _with_palette(
+        debug: VisualPriorityDebug | None,
+        palette: tuple[RGB, ...],
+    ) -> VisualPriorityDebug | None:
+        if debug is None:
+            return None
+        return VisualPriorityDebug(
+            regions=debug.regions,
+            selected_bbox=debug.selected_bbox,
+            region_boxes=debug.region_boxes,
+            palette=palette,
+            saliency_grid=debug.saliency_grid,
+        )
+
+    @staticmethod
+    def _scene_debug(palette: tuple[RGB, ...]) -> VisualPriorityDebug | None:
+        if not palette:
+            return None
+        return VisualPriorityDebug(
+            regions=(),
+            selected_bbox=None,
+            region_boxes=(),
+            palette=palette,
+            saliency_grid=(),
+        )
 
     @staticmethod
     def _resize(rgb_image: np.ndarray, width: int, height: int) -> np.ndarray:

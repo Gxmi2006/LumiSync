@@ -2,14 +2,14 @@
 # Lightweight ambient RGB synchronization for Windows.
 #
 # The runtime currently supports active-window/window-region capture, dominant
-# color extraction, smoothing, Aura/OpenRGB hardware dispatch, and software
+# color extraction, smoothing, OpenRGB hardware dispatch, and software
 # fallback. Additional sections below are intentionally stable configuration
 # surfaces for the ongoing engine refactor.
 
 [app]
 fps = 20
 capture_mode = "active_window" # active_window, window, monitor, region
-controller = "auto"            # auto, aura, openrgb, none
+controller = "openrgb"         # openrgb, auto, aura, none
 debug_overlay = false
 tray_icon = true
 manage_startup_from_config = false
@@ -102,10 +102,11 @@ minimum_update_interval_ms = 16
 minimum_color_delta = 2.0
 reconnect_interval_seconds = 15.0
 prefer_keyboard_devices = true
-device_name_contains = ["keyboard", "aura", "asus", "tuf", "laptop"]
+device_name_contains = ["keyboard", "laptop", "asus", "tuf", "mouse", "strip", "led", "motherboard", "gpu", "ram"]
 
 [aura]
-enabled = true
+# Advanced legacy backend. OpenRGB is the default path for broad laptop/desktop support.
+enabled = false
 device_types = ["notebook_keyboard", "notebook_keyboard_4zone", "keyboard", "keyboard_5zone"]
 
 [openrgb]
@@ -117,7 +118,7 @@ connection_timeout_seconds = 1.5
 retry_interval_seconds = 0.25
 socket_timeout_seconds = 0.35
 set_custom_mode = true
-allow_all_devices_if_no_keyboard = false
+allow_all_devices_if_no_keyboard = true
 
 [overlay]
 enabled = false
@@ -130,8 +131,8 @@ opacity = 0.80
 write_startup_report = true
 include_monitor_report = true
 include_backend_report = true
-# false keeps startup fast in auto mode: Aura first, OpenRGB only if Aura fails.
-# true probes every backend for a fuller report.
+# OpenRGB is the default backend. Aura is skipped unless explicitly selected.
+# true probes every selected backend for a fuller report.
 probe_all_backends = false
 
 [startup]
@@ -153,10 +154,17 @@ release = 0.12
 spotify_only = false
 
 [gradient]
-enabled = false
+enabled = true
 regions = 3
 mode = "horizontal"
-send_regions_to_zones = false
+send_regions_to_zones = true
+
+[palette]
+fallback_mode = "scene_harmony"     # scene_harmony, dominant
+multi_color_mode = "scene"          # scene, harmonic, cinematic
+minimum_focal_confidence = 0.35
+palette_size = 3
+harmony_strength = 0.35
 
 [logging]
 level = "INFO"

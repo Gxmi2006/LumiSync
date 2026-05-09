@@ -1,38 +1,58 @@
-# Configuration Design
+# Configuration Guide
 
-LumiSync uses TOML because it is human-editable, diff-friendly, and expressive enough for profiles.
+LumiSync uses TOML because it is human-editable, diff-friendly, and easy to tune while the app is running.
 
-## Core Sections
-
-- `[app]`: runtime mode, FPS, backend preference, tray/overlay toggles.
-- `[capture]`: normalized region crop and pixel offsets.
-- `[monitor]`: monitor index and future edge sampling options.
-- `[window]`: foreground/named window matching.
-- `[processing]`: downscale, thresholds, quantization, saturation/brightness.
-- `[visual_priority]`: saliency-driven focal region extraction and scoring.
-- `[smoothing]`: transition strength and future curve selection.
-- `[rgb]`: update throttling, reconnect interval, device matching.
-- `[aura]`: Aura SDK enablement and device types.
-- `[openrgb]`: SDK server address, timeouts, and device fallback policy.
-- `[effects]`: high-level effect stack toggles.
-- `[profiles.*]`: named tuning bundles.
-
-## Defaults
-
-The default config targets active-window ambient sync:
+## Core Defaults
 
 ```toml
 [app]
 fps = 20
 capture_mode = "active_window"
-controller = "auto"
+controller = "openrgb"
 
-[window]
-process_name = ""
-title_contains = ""
+[openrgb]
+address = "127.0.0.1"
+port = 6742
+allow_all_devices_if_no_keyboard = true
+
+[aura]
+enabled = false
 ```
 
-Blank window filters mean "use the foreground window." Set either field to target a specific app.
+OpenRGB is the default path. Aura is legacy/advanced opt-in only.
+
+## Important Sections
+
+- `[app]`: FPS, capture mode, backend preference, tray/overlay toggles.
+- `[openrgb]`: SDK Server address, timeouts, custom mode, device fallback.
+- `[palette]`: scene harmony fallback and multi-color styling.
+- `[gradient]`: number of output colors and zone/LED dispatch.
+- `[visual_priority]`: saliency-driven focal region extraction.
+- `[capture]`: normalized region crop and pixel offsets.
+- `[window]`: foreground/named window matching.
+- `[processing]`: downscale, thresholds, quantization, saturation/brightness.
+- `[smoothing]`: transition strength.
+- `[rgb]`: update throttling, reconnect interval, preferred device names.
+
+## Scene Harmony
+
+Scene harmony is used when no focal object is strong enough.
+
+```toml
+[palette]
+fallback_mode = "scene_harmony"
+multi_color_mode = "scene"
+minimum_focal_confidence = 0.35
+palette_size = 3
+harmony_strength = 0.35
+```
+
+Rules of thumb:
+
+- Increase `minimum_focal_confidence` if small highlights win too often.
+- Lower it if neon rings, magic effects, or anime highlights are missed.
+- Use `multi_color_mode = "harmonic"` for cleaner generated gradients.
+- Use `multi_color_mode = "cinematic"` for darker, subtler movie lighting.
 
 ## Visual Priority
 
@@ -50,15 +70,19 @@ debug_saliency_map = true
 debug_palette = true
 ```
 
-This mode keeps ambient lighting focused on visually important objects instead of simple frame averages. It is designed for cases like neon rings, magic effects, HUD highlights, anime energy effects, bright weapons, and cinematic focal objects against dark backgrounds.
+This mode prioritizes visually important objects over simple frame averages.
 
-Use these tuning rules:
+## Multi-Color Output
 
-- Increase `glow_weight` for neon or bloom-heavy scenes.
-- Increase `center_weight` for films, anime, and games where focal objects sit near center.
-- Lower `saliency_threshold` when important regions are missed.
-- Raise `min_region_area_ratio` if small UI icons are selected too often.
-- Disable `use_kmeans` unless you need more expensive clustering experiments.
+```toml
+[gradient]
+enabled = true
+regions = 3
+mode = "horizontal"
+send_regions_to_zones = true
+```
+
+When OpenRGB exposes zones or LEDs, LumiSync maps palette colors across them. Devices without zones receive the best single color.
 
 ## Gaming Profile
 
@@ -71,7 +95,7 @@ saturation_multiplier = 1.18
 black_threshold = 22
 ```
 
-Use for games, emulators, and fast content. Lower smoothing improves responsiveness.
+Use for games, emulators, and fast content.
 
 ## Movie Profile
 
@@ -85,7 +109,7 @@ black_threshold = 32
 cinematic_mode = true
 ```
 
-Use for films, anime, and streaming apps. Higher smoothing prevents distracting flicker.
+Use for films, anime, and streaming apps.
 
 ## Low-Power Laptop Profile
 
@@ -100,19 +124,6 @@ minimum_update_interval_ms = 50
 
 Use when on battery or when the machine is under load.
 
-## Cinematic Profile
-
-```toml
-[profiles.cinematic]
-fps = 16
-smoothing_strength = 0.84
-adaptive_brightness = true
-edge_sampling = true
-brightness_multiplier = 0.72
-```
-
-Designed for Ambilight-style transitions once edge sampling lands.
-
 ## Compatibility Notes
 
-The typed config loader currently reads the runtime-critical fields and ignores unknown future sections. This allows the repository to document stable configuration surfaces before every roadmap item is wired into the loop.
+The typed config loader reads runtime-critical fields and ignores unknown future sections. This lets the repository document stable configuration surfaces before every roadmap item is wired into the loop.

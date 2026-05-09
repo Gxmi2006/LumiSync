@@ -1,20 +1,28 @@
 # RGB Backend Guide
 
-LumiSync separates visual processing from RGB hardware control. If hardware control fails, the app continues in software fallback mode.
+LumiSync is OpenRGB-first. Visual processing is separate from hardware control, so capture and color extraction keep running even when no RGB backend is available.
 
-## Backend Order
+## Default Backend Order
 
-When `app.controller = "auto"`:
+With the default config:
 
-1. Aura is attempted first.
-2. OpenRGB is attempted if Aura is unavailable or reports no devices.
-3. Software fallback is activated if no hardware backend works.
+```toml
+[app]
+controller = "openrgb"
+```
 
-Set `diagnostics.probe_all_backends = true` if you want diagnostics to probe OpenRGB even when Aura succeeds.
+LumiSync:
 
-## OpenRGB
+1. Connects to the OpenRGB SDK Server.
+2. Selects preferred keyboard/laptop-like devices when available.
+3. Falls back to all OpenRGB devices if no preferred match exists and `allow_all_devices_if_no_keyboard = true`.
+4. Uses software fallback if OpenRGB is unavailable.
 
-OpenRGB requires the SDK Server.
+Aura is not probed by default.
+
+## OpenRGB Setup
+
+Installing OpenRGB is not enough. The SDK Server must be running.
 
 1. Install OpenRGB.
 2. Open OpenRGB.
@@ -26,28 +34,33 @@ OpenRGB requires the SDK Server.
 [openrgb]
 address = "127.0.0.1"
 port = 6742
+allow_all_devices_if_no_keyboard = true
 ```
 
 Common statuses:
 
-- `connected`: LumiSync connected and found a matching device.
+- `connected`: LumiSync connected and selected at least one usable device.
 - `not running`: OpenRGB SDK Server is not listening.
 - `timeout`: the server did not respond in time.
-- `no devices`: OpenRGB connected, but no matching keyboard/device was selected.
+- `no devices`: OpenRGB connected but exposed no usable devices.
 - `not found`: the Python OpenRGB client is not installed.
 
-## ASUS Aura / Armoury Crate
+## Multi-Color Output
 
-Aura support uses the Windows COM ProgID `aura.sdk.1`.
+When OpenRGB exposes zones or LEDs, LumiSync sends a palette instead of only one color:
 
-Common statuses:
+```toml
+[gradient]
+enabled = true
+regions = 3
+send_regions_to_zones = true
 
-- `available`: Aura is controlling at least one matching keyboard device.
-- `no devices`: Aura exists but did not expose a supported keyboard.
-- `not found`: Aura COM support or `pywin32` is missing.
-- `error`: Aura started but failed during discovery or update.
+[palette]
+multi_color_mode = "scene"
+palette_size = 3
+```
 
-`no devices` is common on some ASUS laptops. It does not mean LumiSync is broken.
+Unsupported devices receive the best single color automatically.
 
 ## Software Fallback
 
@@ -55,8 +68,30 @@ Software fallback means:
 
 - capture runs
 - visual priority runs
+- scene harmony runs
 - debug overlay works
 - tray and hotkeys work
 - no hardware writes are attempted
 
-Use fallback to tune capture regions and visual-priority settings before hardware is ready.
+Use fallback to tune capture regions and color settings before hardware is ready.
+
+## ASUS Aura Legacy Mode
+
+Aura / Armoury Crate support remains available for advanced users but is disabled by default because many ASUS laptops do not expose keyboard devices through the public Aura SDK.
+
+To try Aura manually:
+
+```toml
+[app]
+controller = "aura"
+
+[aura]
+enabled = true
+```
+
+Common statuses:
+
+- `available`: Aura is controlling at least one matching keyboard device.
+- `no devices`: Aura exists but did not expose a supported keyboard.
+- `not found`: Aura COM support or `pywin32` is missing.
+- `error`: Aura started but failed during discovery or update.

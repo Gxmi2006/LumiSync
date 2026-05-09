@@ -345,7 +345,7 @@ class OpenRgbController(RgbController):
         if not self._devices:
             self.close()
             raise ControllerUnavailable(
-                "OpenRGB connected, but no matching keyboard device was found",
+                "OpenRGB connected, but no usable RGB device was selected",
                 "no devices",
             )
 
@@ -410,17 +410,28 @@ class OpenRgbController(RgbController):
 
     def _select_devices(self, devices: Iterable[object]) -> list[object]:
         all_devices = list(devices)
-        selected = [device for device in all_devices if self._looks_like_keyboard(device)]
-        if selected:
-            LOGGER.info("OpenRGB: selected %s keyboard-like device(s)", len(selected))
-            return selected
-        if self.openrgb_config.allow_all_devices_if_no_keyboard:
-            LOGGER.warning(
-                "OpenRGB: no keyboard device matched; using all %s device(s) because config allows it",
+        if not all_devices:
+            LOGGER.info("OpenRGB: server connected but reported no devices")
+            return []
+
+        if not self.rgb_config.prefer_keyboard_devices:
+            LOGGER.info(
+                "OpenRGB: using all %s device(s) because prefer_keyboard_devices=false",
                 len(all_devices),
             )
             return all_devices
-        LOGGER.info("OpenRGB: no keyboard-like devices matched configured names/types")
+
+        selected = [device for device in all_devices if self._looks_like_keyboard(device)]
+        if selected:
+            LOGGER.info("OpenRGB: selected %s preferred device(s)", len(selected))
+            return selected
+        if self.openrgb_config.allow_all_devices_if_no_keyboard:
+            LOGGER.warning(
+                "OpenRGB: no preferred device matched; using all %s device(s) because config allows it",
+                len(all_devices),
+            )
+            return all_devices
+        LOGGER.info("OpenRGB: no preferred devices matched configured names/types")
         return []
 
     def _looks_like_keyboard(self, device: object) -> bool:
@@ -592,39 +603,24 @@ class ControllerManager:
         aura_controller: RgbController | None = None
         openrgb_controller: RgbController | None = None
 
+        if self._selection_allows("openrgb", choice):
+            openrgb_result, openrgb_controller = self._probe_controller(
+                OpenRgbController(self.config.rgb, self.config.openrgb)
+            )
+
         if self._selection_allows("aura", choice):
             aura_result, aura_controller = self._probe_controller(
                 AuraController(self.config.rgb, self.config.aura)
             )
 
-        should_probe_openrgb = (
-            self._selection_allows("openrgb", choice)
-            and (
-                choice == "openrgb"
-                or aura_controller is None
-                or self.config.diagnostics.probe_all_backends
-            )
-        )
-        if should_probe_openrgb:
-            openrgb_result, openrgb_controller = self._probe_controller(
-                OpenRgbController(self.config.rgb, self.config.openrgb)
-            )
-        elif self._selection_allows("openrgb", choice) and aura_controller is not None:
-            openrgb_result = BackendProbeResult(
-                key="openrgb",
-                label="OpenRGB",
-                status="not probed",
-                detail="Aura is available and selected first; set diagnostics.probe_all_backends=true to probe OpenRGB too",
-            )
-
-        if aura_controller and self._selection_allows("aura", choice):
-            active_controller = aura_controller
-            if openrgb_controller:
-                openrgb_controller.close()
-        elif openrgb_controller and self._selection_allows("openrgb", choice):
+        if openrgb_controller and self._selection_allows("openrgb", choice):
             active_controller = openrgb_controller
             if aura_controller:
                 aura_controller.close()
+        elif aura_controller and self._selection_allows("aura", choice):
+            active_controller = aura_controller
+            if openrgb_controller:
+                openrgb_controller.close()
         else:
             if aura_controller:
                 aura_controller.close()
@@ -716,12 +712,10 @@ class ControllerManager:
 
     @staticmethod
     def _selection_allows(backend_key: str, choice: str) -> bool:
-        if choice == "auto":
-            return backend_key in {"aura", "openrgb"}
+        if choice in {"auto", "openrgb"}:
+            return backend_key == "openrgb"
         if choice in {"aura", "asus", "armoury", "armoury_crate"}:
             return backend_key == "aura"
-        if choice == "openrgb":
-            return backend_key == "openrgb"
         return False
 
 

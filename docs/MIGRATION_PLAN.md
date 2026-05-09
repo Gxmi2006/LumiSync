@@ -13,7 +13,7 @@
 
 ## Next Refactor Steps
 
-1. Split `backend_manager.py` into a true manager plus separate Aura/OpenRGB implementation files.
+1. Split `backend_manager.py` into a true manager plus separate OpenRGB-primary and legacy Aura implementation files.
 2. Replace single `WindowFinder` with a `CaptureTargetResolver`.
 3. Add capture mode dispatch: `active_window`, `window`, `monitor`, `region`.
 4. Add monitor profile matching with MSS monitor indexes.

@@ -1,37 +1,53 @@
 # Quick Start
 
-## With OpenRGB
+## 1. Start OpenRGB SDK Server
 
-1. Install dependencies:
+1. Install OpenRGB.
+2. Open OpenRGB.
+3. Go to **SDK Server**.
+4. Click **Start Server**.
+
+The default LumiSync config expects:
+
+```toml
+[openrgb]
+address = "127.0.0.1"
+port = 6742
+```
+
+## 2. Install LumiSync
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-2. Open OpenRGB.
-3. Go to **SDK Server**.
-4. Click **Start Server**.
-5. Run LumiSync:
-
-```powershell
-python -m lumisync --config .\config.toml
-```
-
-## With ASUS Aura / Armoury Crate
-
-1. Install Armoury Crate / Aura components.
-2. Install Python dependencies.
-3. Run:
+## 3. Run Diagnostics
 
 ```powershell
 python -m lumisync --diagnostics
 ```
 
-If Aura reports `no devices`, try OpenRGB or continue in software fallback mode.
+You want to see:
 
-## Tune A Window
+```text
+OpenRGB: connected
+Active backend: openrgb
+```
+
+If OpenRGB is not running, LumiSync will use software fallback and keep the capture/color pipeline alive.
+
+## 4. Run Ambient Sync
+
+```powershell
+python -m lumisync --config .\config.toml
+```
+
+Put a game, video, browser, or emulator window in focus.
+
+## 5. Tune A Window
 
 ```powershell
 python -m lumisync --config .\config.toml --debug-overlay
@@ -52,3 +68,17 @@ height_ratio = 0.82
 ```
 
 Press `Ctrl+Alt+R` to reload config.
+
+## 6. Multi-Color Keyboard Output
+
+The default config sends a 3-color scene palette to OpenRGB zones or LEDs when the device supports it:
+
+```toml
+[gradient]
+enabled = true
+send_regions_to_zones = true
+
+[palette]
+multi_color_mode = "scene"
+palette_size = 3
+```

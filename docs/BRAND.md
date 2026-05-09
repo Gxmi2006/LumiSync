@@ -2,11 +2,11 @@
 
 ## Repository Description
 
-Lightweight open-source ambient RGB synchronization engine for Windows. Sync Aura/OpenRGB lighting with games, movies, browsers, monitors, and application windows.
+Lightweight open-source OpenRGB ambient synchronization engine for Windows. Sync RGB lighting with games, movies, browsers, monitors, and application windows.
 
 ## Elevator Pitch
 
-LumiSync is a small, hackable Windows ambient RGB engine that samples colors from whatever you are watching or playing and turns them into smooth RGB lighting. It keeps the pipeline transparent: capture pixels, extract a palette, smooth the signal, and dispatch to Aura, OpenRGB, or software fallback. It is built for gamers, laptop users, creators, and RGB enthusiasts who want ambient sync without a heavy closed ecosystem.
+LumiSync is a small, hackable Windows ambient RGB engine that samples colors from whatever you are watching or playing and turns them into smooth OpenRGB lighting. It keeps the pipeline transparent: capture pixels, extract a focal or scene-harmony palette, smooth the signal, and dispatch to OpenRGB or software fallback. It is built for gamers, laptop users, creators, and RGB enthusiasts who want ambient sync without a heavy closed ecosystem.
 
 ## Tagline Variations
 
@@ -24,7 +24,7 @@ LumiSync should feel premium but not corporate, technical but not intimidating, 
 
 - Laptop gamers who want ambient RGB without installing a full RGB suite.
 - OpenRGB users who want window/monitor-based ambient sync.
-- ASUS Armoury Crate users whose keyboard support is inconsistent.
+- Laptop and desktop users who want one RGB path across many device brands.
 - Movie, anime, YouTube, and streaming users who want subtle immersive lighting.
 - Emulator and retro gaming users.
 - Streamers who want lighting automation hooks.
@@ -34,7 +34,7 @@ LumiSync should feel premium but not corporate, technical but not intimidating, 
 ## Unique Selling Points
 
 - Runs even when no RGB backend exists, which makes diagnostics and tuning safe.
-- Aura and OpenRGB support are treated as optional backends, not assumptions.
+- OpenRGB is the default hardware path; Aura remains an advanced legacy option.
 - Low-overhead Python pipeline using MSS, OpenCV, and NumPy.
 - Window-first design for laptop users rather than only whole-monitor LED strips.
 - Debug overlay makes capture tuning visible and approachable.
@@ -46,7 +46,7 @@ LumiSync should feel premium but not corporate, technical but not intimidating, 
 LumiSync is not trying to replace every feature in SignalRGB or vendor suites on day one. Its wedge is being lighter, more transparent, and easier to extend. It fits between heavyweight RGB ecosystems and one-off scripts:
 
 - Compared with SignalRGB: smaller scope, open Python code, simpler diagnostics, laptop-friendly.
-- Compared with OpenRGB: uses OpenRGB as a backend but adds capture, palette, smoothing, profiles, and ambient logic.
+- Compared with OpenRGB: uses OpenRGB as the hardware layer but adds capture, scene harmony, visual priority, smoothing, profiles, and ambient logic.
 - Compared with vendor suites: avoids lock-in, keeps fallback behavior safe, exposes config directly.
 - Compared with Hyperion/Prismatik: Windows desktop/window workflow first, not only LED strip/TV bias lighting.
 

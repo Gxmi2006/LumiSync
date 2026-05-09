@@ -19,7 +19,7 @@ APP_DIR_NAME = "LumiSync"
 @dataclass(slots=True)
 class AppConfig:
     fps: int = 20
-    controller: str = "auto"
+    controller: str = "openrgb"
     capture_mode: str = "active_window"
     debug_overlay: bool = False
     tray_icon: bool = True
@@ -113,13 +113,24 @@ class RgbConfig:
     reconnect_interval_seconds: float = 15.0
     prefer_keyboard_devices: bool = True
     device_name_contains: list[str] = field(
-        default_factory=lambda: ["keyboard", "aura", "asus", "tuf"]
+        default_factory=lambda: [
+            "keyboard",
+            "laptop",
+            "asus",
+            "tuf",
+            "mouse",
+            "strip",
+            "led",
+            "motherboard",
+            "gpu",
+            "ram",
+        ]
     )
 
 
 @dataclass(slots=True)
 class AuraConfig:
-    enabled: bool = True
+    enabled: bool = False
     device_types: list[str] = field(
         default_factory=lambda: [
             "notebook_keyboard",
@@ -140,7 +151,7 @@ class OpenRgbConfig:
     retry_interval_seconds: float = 0.25
     socket_timeout_seconds: float = 0.35
     set_custom_mode: bool = True
-    allow_all_devices_if_no_keyboard: bool = False
+    allow_all_devices_if_no_keyboard: bool = True
 
 
 @dataclass(slots=True)
@@ -154,10 +165,19 @@ class AudioPulseConfig:
 
 @dataclass(slots=True)
 class GradientConfig:
-    enabled: bool = False
+    enabled: bool = True
     regions: int = 3
     mode: str = "horizontal"
-    send_regions_to_zones: bool = False
+    send_regions_to_zones: bool = True
+
+
+@dataclass(slots=True)
+class PaletteConfig:
+    fallback_mode: str = "scene_harmony"
+    multi_color_mode: str = "scene"
+    minimum_focal_confidence: float = 0.35
+    palette_size: int = 3
+    harmony_strength: float = 0.35
 
 
 @dataclass(slots=True)
@@ -196,6 +216,7 @@ class Config:
     openrgb: OpenRgbConfig = field(default_factory=OpenRgbConfig)
     audio_pulse: AudioPulseConfig = field(default_factory=AudioPulseConfig)
     gradient: GradientConfig = field(default_factory=GradientConfig)
+    palette: PaletteConfig = field(default_factory=PaletteConfig)
     diagnostics: DiagnosticsConfig = field(default_factory=DiagnosticsConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     startup: StartupConfig = field(default_factory=StartupConfig)

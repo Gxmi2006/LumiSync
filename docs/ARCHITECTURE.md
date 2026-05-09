@@ -19,7 +19,7 @@ lumisync/
     palette_extraction.py  dominant color and visual-priority extraction entry point
     saliency.py            lightweight OpenCV saliency maps
     visual_priority.py     focal region scoring and temporal stability
-    palette_engine.py      weighted palette extraction helpers
+    palette_engine.py      weighted palette and scene-harmony helpers
   backends/
     backend_manager.py     backend probing, selection, fallback, dispatch
     aura_backend.py        Aura adapter import surface
@@ -46,13 +46,13 @@ lumisync/
 ## Runtime Pipeline
 
 1. `core.app` loads config and starts UI helpers.
-2. `backends.backend_manager` probes Aura and OpenRGB, then selects a hardware backend or software fallback.
+2. `backends.backend_manager` probes OpenRGB by default, then selects a hardware backend or software fallback.
 3. `capture.window_capture` selects a foreground/named target window.
 4. `capture.region_capture` crops the configured rectangle using MSS.
 5. `processing.palette_extraction` optionally routes through the Intelligent Visual Priority Engine.
 6. `processing.saliency` builds a low-cost saliency map from contrast, glow, saturation, edges, and spectral residual cues.
 7. `processing.visual_priority` extracts connected focal regions and scores them by saturation, brightness, contrast, glow, edge density, size, center bias, motion, and temporal continuity.
-8. `processing.palette_engine` extracts weighted colors from the selected regions only.
+8. `processing.palette_engine` extracts weighted colors from selected regions or a scene-harmony palette when no focal object is strong enough.
 9. `core.smoothing` interpolates between previous and target colors.
 10. `effects` optionally modifies brightness or stacks color effects.
 11. `backend_manager.set_color()` sends updates only if a backend is connected and throttling allows it.
@@ -63,17 +63,17 @@ lumisync/
 Backend rules:
 
 - SDK imports and calls must stay inside `lumisync/backends`.
-- Aura failure, OpenRGB failure, and no-device states must never stop capture.
+- OpenRGB failure, Aura legacy failure, and no-device states must never stop capture.
 - Every backend probe returns a structured status.
 - Software fallback must remain valid for development and unsupported hardware.
-- In `auto` mode, Aura is probed first and OpenRGB is probed only if Aura is unavailable unless `diagnostics.probe_all_backends = true`.
+- OpenRGB is the default backend. Aura is legacy opt-in and is only probed when explicitly selected.
 - `python -m lumisync --diagnostics` prints a clean Markdown runtime report for users and issue reports.
 
 Current statuses:
 
 - Aura: `available`, `no devices`, `not found`, `disabled`, `error`
 - OpenRGB: `connected`, `not running`, `timeout`, `not found`, `no devices`, `disabled`, `error`
-- Active backend: `aura`, `openrgb`, `software fallback`, or `none`
+- Active backend: `openrgb`, `aura`, `software fallback`, or `none`
 
 ## Threading Model
 
@@ -89,7 +89,7 @@ The goal is not maximum throughput; it is stable frame pacing and low latency wi
 ## Extension Points
 
 - Capture sources: DXGI/DXcam, OBS virtual source, browser tab capture, game hooks.
-- Processing: edge sampling, palette clustering, dark-scene models, letterbox detection.
+- Processing: edge sampling, richer scene-harmony scoring, dark-scene models, letterbox detection.
 - Effects: beat detection, idle breathing, cinematic fades, profile-specific transforms.
 - Backends: WLED, Hue, Nanoleaf, MQTT, vendor SDKs, local WebSocket clients.
 - Profiles: automatic app matching, fullscreen detection, schedule-based switching.

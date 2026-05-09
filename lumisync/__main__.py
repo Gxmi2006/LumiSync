@@ -7,7 +7,7 @@ import sys
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lumisync",
-        description="Lightweight ambient RGB synchronization engine for Windows.",
+        description="Lightweight OpenRGB ambient lighting for Windows.",
     )
     parser.add_argument("--config", help="Path to config.toml")
     parser.add_argument("--debug-overlay", action="store_true", help="Show capture/color debug overlay")
