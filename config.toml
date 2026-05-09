@@ -1,0 +1,181 @@
+# LumiSync default configuration
+# Lightweight ambient RGB synchronization for Windows.
+#
+# The runtime currently supports active-window/window-region capture, dominant
+# color extraction, smoothing, Aura/OpenRGB hardware dispatch, and software
+# fallback. Additional sections below are intentionally stable configuration
+# surfaces for the ongoing engine refactor.
+
+[app]
+fps = 20
+capture_mode = "active_window" # active_window, window, monitor, region
+controller = "auto"            # auto, aura, openrgb, none
+debug_overlay = false
+tray_icon = true
+manage_startup_from_config = false
+log_level = "INFO"
+
+[hotkeys]
+pause_resume = "ctrl+alt+p"
+reload_config = "ctrl+alt+r"
+quit = "ctrl+alt+q"
+toggle_debug = "ctrl+alt+d"
+
+[capture]
+# Ratios are relative to the selected window/monitor client rectangle.
+left_ratio = 0.00
+top_ratio = 0.00
+width_ratio = 1.00
+height_ratio = 1.00
+left_offset = 0
+top_offset = 0
+width_offset = 0
+height_offset = 0
+min_width = 96
+min_height = 72
+
+[monitor]
+index = 1
+include_taskbar = true
+prefer_primary = true
+edge_sampling = false
+edge_thickness_ratio = 0.08
+
+[window]
+# Leave both blank to sync the current foreground window.
+# Examples: process_name = "chrome.exe", title_contains = "YouTube"
+process_name = ""
+title_contains = ""
+redetect_interval_seconds = 1.0
+min_client_width = 480
+min_client_height = 320
+fullscreen_priority = true
+
+[processing]
+downscale_width = 160
+downscale_height = 90
+black_threshold = 28
+saturation_threshold = 36
+quantization_bins = 16
+saturation_multiplier = 1.12
+brightness_multiplier = 0.88
+minimum_mask_pixels = 24
+ignore_letterbox_bars = true
+
+[smoothing]
+strength = 0.62
+minimum_step = 1
+transition_curve = "exponential"
+
+[rgb]
+minimum_update_interval_ms = 16
+minimum_color_delta = 2.0
+reconnect_interval_seconds = 15.0
+prefer_keyboard_devices = true
+device_name_contains = ["keyboard", "aura", "asus", "tuf", "laptop"]
+
+[aura]
+enabled = true
+device_types = ["notebook_keyboard", "notebook_keyboard_4zone", "keyboard", "keyboard_5zone"]
+
+[openrgb]
+enabled = true
+address = "127.0.0.1"
+port = 6742
+client_name = "LumiSync"
+connection_timeout_seconds = 1.5
+retry_interval_seconds = 0.25
+socket_timeout_seconds = 0.35
+set_custom_mode = true
+allow_all_devices_if_no_keyboard = false
+
+[overlay]
+enabled = false
+show_capture_region = true
+show_fps = true
+show_backend = true
+opacity = 0.80
+
+[diagnostics]
+write_startup_report = true
+include_monitor_report = true
+include_backend_report = true
+
+[startup]
+enabled = false
+shortcut_name = "LumiSync.lnk"
+
+[effects]
+adaptive_brightness = false
+audio_reactive = false
+idle_breathing = false
+cinematic_mode = false
+effect_stack = ["ambient"]
+
+[audio_pulse]
+enabled = false
+strength = 0.18
+attack = 0.45
+release = 0.12
+spotify_only = false
+
+[gradient]
+enabled = false
+regions = 3
+mode = "horizontal"
+send_regions_to_zones = false
+
+[logging]
+level = "INFO"
+file = "%APPDATA%/LumiSync/logs/lumisync.log"
+max_bytes = 1000000
+backup_count = 3
+
+[performance]
+adaptive_fps = true
+idle_fps = 5
+max_fps = 30
+capture_backend = "mss"
+downscale_interpolation = "area"
+
+[profiles.default]
+description = "Balanced low-latency ambient sync for everyday use."
+fps = 20
+smoothing_strength = 0.62
+brightness_multiplier = 0.88
+saturation_multiplier = 1.12
+
+[profiles.gaming]
+description = "Responsive profile for games and emulators."
+fps = 30
+capture_mode = "active_window"
+smoothing_strength = 0.42
+brightness_multiplier = 0.92
+saturation_multiplier = 1.18
+black_threshold = 22
+
+[profiles.movie]
+description = "Stable profile for films, anime, and streaming apps."
+fps = 18
+capture_mode = "monitor"
+smoothing_strength = 0.76
+brightness_multiplier = 0.78
+saturation_multiplier = 1.08
+black_threshold = 32
+cinematic_mode = true
+
+[profiles.low_power_laptop]
+description = "Battery-friendly capture and update settings."
+fps = 10
+downscale_width = 96
+downscale_height = 54
+smoothing_strength = 0.70
+minimum_update_interval_ms = 50
+
+[profiles.cinematic]
+description = "Slow, premium Ambilight-style transitions."
+fps = 16
+smoothing_strength = 0.84
+adaptive_brightness = true
+edge_sampling = true
+brightness_multiplier = 0.72

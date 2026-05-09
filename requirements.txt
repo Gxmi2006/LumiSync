@@ -1,0 +1,13 @@
+comtypes>=1.4.8
+keyboard>=0.13.5
+mss>=9.0.1
+numpy>=1.26.0
+opencv-python>=4.9.0.80
+openrgb-python>=0.3.6
+pillow>=10.2.0
+psutil>=5.9.8
+pycaw>=20240210
+pyinstaller>=6.5.0
+pystray>=0.19.5
+pywin32>=306
+tomli>=2.0.1; python_version < "3.11"
