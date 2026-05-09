@@ -10,14 +10,14 @@
 
 LumiSync watches the colors in your games, movies, browser videos, anime, emulators, desktop windows, and monitors, then turns them into smooth OpenRGB lighting with cinematic color selection and low overhead.
 
-It is built for people who want ambient RGB without a heavy vendor suite: transparent diagnostics, simple TOML config, smart color extraction, multi-zone keyboard gradients, and safe software fallback when RGB hardware is unavailable.
+It is built for people who want ambient RGB without a heavy vendor suite: transparent diagnostics, simple TOML config, smart single-color extraction, and safe software fallback when RGB hardware is unavailable.
 
 ```text
 game / movie / browser / window
         -> capture a small region
         -> find focal objects or scene harmony colors
         -> smooth and style the palette
-        -> send to OpenRGB zones, LEDs, or software fallback
+        -> send one best color to OpenRGB or software fallback
 ```
 
 ## Why LumiSync
@@ -26,7 +26,7 @@ game / movie / browser / window
 | --- | --- |
 | RGB that follows games and videos | Captures the active window or a tuned region in real time |
 | Better colors than average sampling | Prioritizes glowing objects, vivid highlights, and pleasing scene palettes |
-| Multiple colors on the keyboard | Sends palette gradients to OpenRGB zones or LEDs when supported |
+| Elegant keyboard color | Sends one best cinematic scene color instead of flashy gradients |
 | Works across laptops and desktops | Uses OpenRGB as the default hardware path |
 | No crashes when hardware is missing | Falls back to software mode while capture and overlays keep running |
 | Easy tuning | Uses `config.toml`, diagnostics, hotkeys, and debug overlays |
@@ -116,7 +116,7 @@ Public demo assets should be added under `assets/`.
 | --- | --- |
 | Capture | Active-window sync, process/title targeting, normalized region capture, monitor detection |
 | Color engine | Saliency detection, focal region scoring, smart scene-harmony fallback, OpenCV/NumPy palette extraction |
-| Multi-color output | Scene, harmonic, and cinematic palette styles for OpenRGB zones/LEDs |
+| Single-color output | One best cinematic scene color by default |
 | Smoothing | Low-flicker interpolation, update throttling, configurable FPS |
 | OpenRGB | SDK Server connection, reconnect handling, all-device fallback when no keyboard match exists |
 | Desktop app | Tray icon, global hotkeys, debug overlay, startup shortcut support |
@@ -155,7 +155,7 @@ When there is no single appealing object, LumiSync switches to scene harmony:
 fallback_mode = "scene_harmony"
 multi_color_mode = "cinematic"
 minimum_focal_confidence = 0.35
-palette_size = 3
+palette_size = 1
 harmony_strength = 0.35
 ```
 
@@ -309,9 +309,9 @@ The main config is [config.toml](config.toml).
 | --- | --- |
 | `[app]` | FPS, capture mode, backend preference |
 | `[openrgb]` | SDK Server host, port, timeouts, device fallback |
-| `[palette]` | Scene harmony and multi-color palette style |
+| `[palette]` | Scene harmony and single-color palette style |
 | `[visual_priority]` | Focal object detection and region scoring |
-| `[gradient]` | Multi-region colors sent to OpenRGB zones/LEDs |
+| `[gradient]` | Optional multi-region output, disabled by default |
 | `[window]` | Target process/title matching |
 | `[capture]` | Region crop ratios and offsets |
 | `[processing]` | Downscale, thresholds, color adjustments |

@@ -154,16 +154,16 @@ release = 0.12
 spotify_only = false
 
 [gradient]
-enabled = true
+enabled = false
 regions = 3
 mode = "horizontal"
-send_regions_to_zones = true
+send_regions_to_zones = false
 
 [palette]
 fallback_mode = "scene_harmony"     # scene_harmony, dominant
 multi_color_mode = "cinematic"      # scene, harmonic, cinematic
 minimum_focal_confidence = 0.35
-palette_size = 3
+palette_size = 1
 harmony_strength = 0.35
 
 [logging]

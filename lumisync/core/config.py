@@ -165,10 +165,10 @@ class AudioPulseConfig:
 
 @dataclass(slots=True)
 class GradientConfig:
-    enabled: bool = True
+    enabled: bool = False
     regions: int = 3
     mode: str = "horizontal"
-    send_regions_to_zones: bool = True
+    send_regions_to_zones: bool = False
 
 
 @dataclass(slots=True)
@@ -176,7 +176,7 @@ class PaletteConfig:
     fallback_mode: str = "scene_harmony"
     multi_color_mode: str = "cinematic"
     minimum_focal_confidence: float = 0.35
-    palette_size: int = 3
+    palette_size: int = 1
     harmony_strength: float = 0.35
 
 

@@ -45,22 +45,22 @@ Common statuses:
 - `no devices`: OpenRGB connected but exposed no usable devices.
 - `not found`: the Python OpenRGB client is not installed.
 
-## Multi-Color Output
+## Single-Color Output
 
-When OpenRGB exposes zones or LEDs, LumiSync sends a palette instead of only one color:
+By default, LumiSync sends one best cinematic scene color:
 
 ```toml
 [gradient]
-enabled = true
+enabled = false
 regions = 3
-send_regions_to_zones = true
+send_regions_to_zones = false
 
 [palette]
 multi_color_mode = "cinematic"
-palette_size = 3
+palette_size = 1
 ```
 
-Unsupported devices receive the best single color automatically.
+Optional zone/LED gradients remain available by setting `gradient.enabled = true` and `palette.palette_size = 3`.
 
 ## Software Fallback
 

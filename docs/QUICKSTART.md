@@ -69,16 +69,16 @@ height_ratio = 0.82
 
 Press `Ctrl+Alt+R` to reload config.
 
-## 6. Multi-Color Keyboard Output
+## 6. Keyboard Color Output
 
-The default config sends a calmer 3-color cinematic palette to OpenRGB zones or LEDs when the device supports it:
+The default config sends one calm cinematic scene color:
 
 ```toml
 [gradient]
-enabled = true
-send_regions_to_zones = true
+enabled = false
+send_regions_to_zones = false
 
 [palette]
 multi_color_mode = "cinematic"
-palette_size = 3
+palette_size = 1
 ```

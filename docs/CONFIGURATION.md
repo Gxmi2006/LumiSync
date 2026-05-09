@@ -25,8 +25,8 @@ OpenRGB is the default path. Aura is legacy/advanced opt-in only.
 
 - `[app]`: FPS, capture mode, backend preference, tray/overlay toggles.
 - `[openrgb]`: SDK Server address, timeouts, custom mode, device fallback.
-- `[palette]`: scene harmony fallback and multi-color styling.
-- `[gradient]`: number of output colors and zone/LED dispatch.
+- `[palette]`: scene harmony fallback and single-color styling.
+- `[gradient]`: optional multi-region output, disabled by default.
 - `[visual_priority]`: saliency-driven focal region extraction.
 - `[capture]`: normalized region crop and pixel offsets.
 - `[window]`: foreground/named window matching.
@@ -43,7 +43,7 @@ Scene harmony is used when no focal object is strong enough.
 fallback_mode = "scene_harmony"
 multi_color_mode = "cinematic"
 minimum_focal_confidence = 0.35
-palette_size = 3
+palette_size = 1
 harmony_strength = 0.35
 ```
 
@@ -51,7 +51,7 @@ Rules of thumb:
 
 - Increase `minimum_focal_confidence` if small highlights win too often.
 - Lower it if neon rings, magic effects, or anime highlights are missed.
-- Use `multi_color_mode = "harmonic"` for cleaner generated gradients.
+- Use `palette_size = 3` and enable `[gradient]` later if you want generated gradients.
 - Use `multi_color_mode = "scene"` if you want brighter colors sampled directly from the frame.
 
 ## Visual Priority
@@ -72,17 +72,20 @@ debug_palette = true
 
 This mode prioritizes visually important objects over simple frame averages.
 
-## Multi-Color Output
+## Single-Color Output
 
 ```toml
 [gradient]
-enabled = true
+enabled = false
 regions = 3
 mode = "horizontal"
-send_regions_to_zones = true
+send_regions_to_zones = false
+
+[palette]
+palette_size = 1
 ```
 
-When OpenRGB exposes zones or LEDs, LumiSync maps palette colors across them. Devices without zones receive the best single color.
+This default keeps the keyboard on one best cinematic scene color. Optional OpenRGB zone gradients can be enabled later by setting `gradient.enabled = true`, `gradient.send_regions_to_zones = true`, and `palette.palette_size = 3`.
 
 ## Gaming Profile
 
