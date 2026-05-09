@@ -28,6 +28,7 @@ OpenRGB is the default path. Aura is legacy/advanced opt-in only.
 - `[palette]`: scene harmony fallback and single-color styling.
 - `[gradient]`: optional multi-region output, disabled by default.
 - `[visual_priority]`: saliency-driven focal region extraction.
+- `[monitor]`: monitor index and future monitor sampling settings.
 - `[capture]`: normalized region crop and pixel offsets.
 - `[window]`: foreground/named window matching.
 - `[processing]`: downscale, thresholds, quantization, saturation/brightness.
@@ -71,6 +72,24 @@ debug_palette = true
 ```
 
 This mode prioritizes visually important objects over simple frame averages.
+
+White and gray highlights are supported when they are bright, coherent, and salient. Tiny white UI specks are still filtered by region size, center bias, and confidence scoring.
+
+## Config Safety
+
+LumiSync validates runtime config values on load. Unsafe values are clamped to a safe range and reported by:
+
+```powershell
+python -m lumisync --setup-check
+python -m lumisync --diagnostics
+```
+
+Examples:
+
+- `app.fps = 500` is clamped to `60`
+- negative capture ratios are clamped to `0.0`
+- invalid backend names fall back to `openrgb`
+- invalid palette sizes fall back to at least `1`
 
 ## Single-Color Output
 

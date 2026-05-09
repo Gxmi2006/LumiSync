@@ -26,6 +26,7 @@ class BackendProbeResult:
     status: str
     detail: str
     device_count: int = 0
+    device_names: tuple[str, ...] = ()
 
     @property
     def connected(self) -> bool:
@@ -35,6 +36,11 @@ class BackendProbeResult:
         suffix = f" - {self.detail}" if self.detail else ""
         if self.device_count:
             suffix += f" ({self.device_count} device(s))"
+        if self.device_names:
+            names = ", ".join(self.device_names[:4])
+            if len(self.device_names) > 4:
+                names += f", +{len(self.device_names) - 4} more"
+            suffix += f" [{names}]"
         return f"{self.label}: {self.status}{suffix}"
 
 
@@ -83,6 +89,10 @@ class RgbController(ABC):
     @property
     def device_count(self) -> int:
         return 0
+
+    @property
+    def device_names(self) -> tuple[str, ...]:
+        return ()
 
     @abstractmethod
     def connect(self) -> None:
@@ -145,6 +155,10 @@ class AuraController(RgbController):
     @property
     def device_count(self) -> int:
         return len(self._devices)
+
+    @property
+    def device_names(self) -> tuple[str, ...]:
+        return tuple(str(getattr(device, "Name", "unknown")) for device in self._devices)
 
     def connect(self) -> None:
         LOGGER.info("Checking Aura backend")
@@ -298,6 +312,10 @@ class OpenRgbController(RgbController):
     @property
     def device_count(self) -> int:
         return len(self._devices)
+
+    @property
+    def device_names(self) -> tuple[str, ...]:
+        return tuple(str(getattr(device, "name", "unknown")) for device in self._devices)
 
     def connect(self) -> None:
         LOGGER.info("Checking OpenRGB backend")
@@ -674,6 +692,7 @@ class ControllerManager:
                 status=controller.success_status,
                 detail="ready for hardware RGB updates",
                 device_count=controller.device_count,
+                device_names=controller.device_names,
             )
             return result, controller
         except ControllerUnavailable as exc:

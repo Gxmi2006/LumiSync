@@ -6,7 +6,7 @@ LumiSync is organized as a pipeline. Each stage should have a narrow responsibil
 lumisync/
   core/
     app.py                 main loop, state, lifecycle
-    config.py              typed TOML config loader
+    config.py              typed TOML config loader and safety validation
     color.py               RGB primitive and conversions
     smoothing.py           interpolation engine
     websocket_server.py    optional local API surface
@@ -35,6 +35,7 @@ lumisync/
     debug_overlay.py       capture diagnostics overlay
   diagnostics/
     diagnostics_report.py  markdown/system status reports
+    setup_check.py         first-time setup checks and fix guidance
   profiles/
     profile_manager.py     profile loading
   presets/
@@ -47,7 +48,7 @@ lumisync/
 
 1. `core.app` loads config and starts UI helpers.
 2. `backends.backend_manager` probes OpenRGB by default, then selects a hardware backend or software fallback.
-3. `capture.window_capture` selects a foreground/named target window.
+3. `core.app` selects a window, monitor, or virtual-desktop region based on `app.capture_mode`.
 4. `capture.region_capture` crops the configured rectangle using MSS.
 5. `processing.palette_extraction` optionally routes through the Intelligent Visual Priority Engine.
 6. `processing.saliency` builds a low-cost saliency map from contrast, glow, saturation, edges, and spectral residual cues.
@@ -68,6 +69,7 @@ Backend rules:
 - Software fallback must remain valid for development and unsupported hardware.
 - OpenRGB is the default backend. Aura is legacy opt-in and is only probed when explicitly selected.
 - `python -m lumisync --diagnostics` prints a clean Markdown runtime report for users and issue reports.
+- `python -m lumisync --setup-check` verifies dependencies, OpenRGB SDK Server, devices, hotkeys, and config safety.
 
 Current statuses:
 

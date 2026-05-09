@@ -19,7 +19,10 @@ class CaptureFrame:
 
 
 def compute_capture_region(window: WindowInfo, config: CaptureConfig) -> Rect | None:
-    client = window.client_rect
+    return compute_region_from_rect(window.client_rect, config)
+
+
+def compute_region_from_rect(client: Rect, config: CaptureConfig) -> Rect | None:
     if client.width <= 0 or client.height <= 0:
         return None
 

@@ -123,10 +123,16 @@ class VisualPriorityEngine:
 
         value = hsv[:, :, 2]
         saturation = hsv[:, :, 1]
-        vivid_mask = (
+        color_mask = (
             (value >= self.processing.black_threshold)
             & (saturation >= max(1, self.processing.saturation_threshold // 2))
         )
+        neutral_highlight_mask = (
+            (value >= max(82, self.processing.black_threshold * 3))
+            & (saturation <= max(42, self.processing.saturation_threshold * 2))
+            & (saliency_map >= threshold * 0.72)
+        )
+        vivid_mask = color_mask | neutral_highlight_mask
         mask &= vivid_mask
 
         kernel = np.ones((3, 3), dtype=np.uint8)
@@ -209,6 +215,7 @@ class VisualPriorityEngine:
         center_bias = _center_bias(bbox, rgb.shape[1], rgb.shape[0])
         motion = float(np.mean(motion_roi[mask]))
         temporal = self._temporal_bias(bbox, rgb.shape[1], rgb.shape[0], palette.color)
+        neutral_highlight = _neutral_highlight_score(saturation, brightness, contrast, glow, edge_density)
 
         cfg = self.visual_priority
         score = (
@@ -221,6 +228,7 @@ class VisualPriorityEngine:
             + center_bias * cfg.center_weight
             + motion * cfg.motion_weight
             + temporal * cfg.temporal_weight
+            + neutral_highlight * 0.95
         )
 
         return VisualRegion(
@@ -248,16 +256,54 @@ class VisualPriorityEngine:
         if not regions:
             return None
 
-        weights = np.array(
-            [
-                max(0.001, region.score * region.confidence * max(1, region.pixel_count))
-                for region in regions
-            ],
-            dtype=np.float64,
-        )
+        top_score = max(0.001, regions[0].score)
+        weights: list[float] = []
+        for index, region in enumerate(regions):
+            relative_score = max(0.05, region.score / top_score)
+            confidence = max(0.10, region.confidence)
+            pixel_weight = max(1.0, float(region.pixel_count) ** 0.35)
+            rank_boost = 1.65 if index == 0 else 1.0 / (1.0 + index * 0.45)
+            visual_strength = (
+                region.saturation * 0.24
+                + region.brightness * 0.18
+                + region.contrast * 0.16
+                + region.glow * 0.18
+                + region.edge_density * 0.14
+                + region.center_bias * 0.10
+            )
+            weights.append(
+                max(
+                    0.001,
+                    rank_boost
+                    * (relative_score ** 1.45)
+                    * (0.45 + visual_strength)
+                    * confidence
+                    * pixel_weight,
+                )
+            )
+
+        weights_array = np.array(weights, dtype=np.float64)
         colors = np.array([region.color.to_tuple() for region in regions], dtype=np.float64)
-        color = RGB.from_iterable(np.average(colors, axis=0, weights=weights))
-        confidence = float(np.average([region.confidence for region in regions], weights=weights))
+        color = RGB.from_iterable(np.average(colors, axis=0, weights=weights_array))
+        palette_confidence = float(np.average([region.confidence for region in regions], weights=weights_array))
+        score_confidence = float(
+            np.average(
+                [
+                    min(
+                        1.0,
+                        (
+                            region.score / (region.score + 1.15)
+                            + region.glow * 0.28
+                            + region.edge_density * 0.18
+                            + region.center_bias * 0.12
+                        ),
+                    )
+                    for region in regions
+                ],
+                weights=weights_array,
+            )
+        )
+        confidence = float(min(1.0, palette_confidence * 0.56 + score_confidence * 0.44))
         return PaletteResult(
             color=color,
             confidence=confidence,
@@ -341,6 +387,21 @@ def _edge_density(gray_roi: np.ndarray, mask: np.ndarray) -> float:
     if int(mask.sum()) <= 0:
         return 0.0
     return float(np.mean(np.clip(magnitude[mask] * 2.5, 0.0, 1.0)))
+
+
+def _neutral_highlight_score(
+    saturation: float,
+    brightness: float,
+    contrast: float,
+    glow: float,
+    edge_density: float,
+) -> float:
+    if brightness < 0.30 or saturation > 0.36:
+        return 0.0
+    brightness_score = min(1.0, max(0.0, (brightness - 0.30) / 0.58))
+    neutral_score = min(1.0, max(0.0, (0.36 - saturation) / 0.36))
+    structure_score = min(1.0, contrast * 2.1 + glow * 0.55 + edge_density * 0.45)
+    return brightness_score * neutral_score * structure_score
 
 
 def _center_bias(bbox: tuple[int, int, int, int], width: int, height: int) -> float:

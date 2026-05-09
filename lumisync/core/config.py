@@ -2,6 +2,7 @@
 
 from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 from pathlib import Path
+import math
 import os
 import shutil
 import sys
@@ -14,6 +15,18 @@ else:
 
 
 APP_DIR_NAME = "LumiSync"
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigIssue:
+    path: str
+    message: str
+    suggestion: str = ""
+    severity: str = "warning"
+
+    def line(self) -> str:
+        suffix = f" Fix: {self.suggestion}" if self.suggestion else ""
+        return f"{self.severity.upper()} {self.path}: {self.message}.{suffix}"
 
 
 @dataclass(slots=True)
@@ -42,6 +55,7 @@ class WindowConfig:
     redetect_interval_seconds: float = 1.0
     min_client_width: int = 480
     min_client_height: int = 320
+    fullscreen_priority: bool = True
 
 
 @dataclass(slots=True)
@@ -68,6 +82,16 @@ class ProcessingConfig:
     saturation_multiplier: float = 1.05
     brightness_multiplier: float = 0.78
     minimum_mask_pixels: int = 24
+    ignore_letterbox_bars: bool = True
+
+
+@dataclass(slots=True)
+class MonitorConfig:
+    index: int = 1
+    include_taskbar: bool = True
+    prefer_primary: bool = True
+    edge_sampling: bool = False
+    edge_thickness_ratio: float = 0.08
 
 
 @dataclass(slots=True)
@@ -104,6 +128,7 @@ class VisualPriorityConfig:
 class SmoothingConfig:
     strength: float = 0.76
     minimum_step: int = 1
+    transition_curve: str = "exponential"
 
 
 @dataclass(slots=True)
@@ -206,6 +231,7 @@ class StartupConfig:
 class Config:
     app: AppConfig = field(default_factory=AppConfig)
     hotkeys: HotkeyConfig = field(default_factory=HotkeyConfig)
+    monitor: MonitorConfig = field(default_factory=MonitorConfig)
     window: WindowConfig = field(default_factory=WindowConfig)
     capture: CaptureConfig = field(default_factory=CaptureConfig)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
@@ -251,11 +277,128 @@ def ensure_default_config(path: Path) -> None:
 
 
 def load_config(path: Path | None = None) -> Config:
+    config, _issues = load_config_with_issues(path)
+    return config
+
+
+def load_config_with_issues(path: Path | None = None) -> tuple[Config, list[ConfigIssue]]:
     resolved = path or default_config_path()
     ensure_default_config(resolved)
     with resolved.open("rb") as handle:
         data = tomllib.load(handle)
-    return _from_mapping(Config, data)
+    config = _from_mapping(Config, data)
+    issues = validate_config(config, fix=True)
+    return config, issues
+
+
+def validate_config(config: Config, fix: bool = False) -> list[ConfigIssue]:
+    issues: list[ConfigIssue] = []
+
+    def issue(path: str, message: str, suggestion: str = "") -> None:
+        issues.append(ConfigIssue(path=path, message=message, suggestion=suggestion))
+
+    def set_value(obj: object, attr: str, value: object) -> None:
+        if fix:
+            setattr(obj, attr, value)
+
+    def clamp_number(
+        obj: object,
+        attr: str,
+        path: str,
+        minimum: float,
+        maximum: float,
+        fallback: float | int,
+        integer: bool = False,
+    ) -> None:
+        raw = getattr(obj, attr)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            issue(path, f"value {raw!r} is not numeric", f"using {fallback!r}")
+            set_value(obj, attr, fallback)
+            return
+        if not math.isfinite(value):
+            issue(path, f"value {raw!r} is not finite", f"using {fallback!r}")
+            set_value(obj, attr, fallback)
+            return
+        clamped = max(minimum, min(maximum, value))
+        if clamped != value:
+            issue(path, f"value {raw!r} is outside {minimum:g}..{maximum:g}", f"using {clamped:g}")
+        if integer:
+            clamped = int(round(clamped))
+        set_value(obj, attr, clamped)
+
+    def choice(obj: object, attr: str, path: str, allowed: set[str], fallback: str) -> None:
+        raw = str(getattr(obj, attr)).lower().strip()
+        if raw not in allowed:
+            issue(path, f"value {raw!r} is unsupported", f"using {fallback!r}")
+            set_value(obj, attr, fallback)
+        else:
+            set_value(obj, attr, raw)
+
+    choice(config.app, "controller", "app.controller", {"openrgb", "auto", "aura", "asus", "armoury", "armoury_crate", "none", "noop", "debug"}, "openrgb")
+    choice(config.app, "capture_mode", "app.capture_mode", {"active_window", "window", "monitor", "region"}, "active_window")
+    clamp_number(config.app, "fps", "app.fps", 1, 60, 20, integer=True)
+
+    for attr in ("left_ratio", "top_ratio", "width_ratio", "height_ratio"):
+        clamp_number(config.capture, attr, f"capture.{attr}", 0.0, 1.0, getattr(CaptureConfig(), attr))
+    clamp_number(config.capture, "min_width", "capture.min_width", 16, 7680, 96, integer=True)
+    clamp_number(config.capture, "min_height", "capture.min_height", 16, 4320, 72, integer=True)
+
+    clamp_number(config.monitor, "index", "monitor.index", 0, 32, 1, integer=True)
+    clamp_number(config.monitor, "edge_thickness_ratio", "monitor.edge_thickness_ratio", 0.01, 0.50, 0.08)
+
+    clamp_number(config.window, "redetect_interval_seconds", "window.redetect_interval_seconds", 0.05, 30.0, 1.0)
+    clamp_number(config.window, "min_client_width", "window.min_client_width", 16, 7680, 480, integer=True)
+    clamp_number(config.window, "min_client_height", "window.min_client_height", 16, 4320, 320, integer=True)
+
+    clamp_number(config.processing, "downscale_width", "processing.downscale_width", 16, 960, 160, integer=True)
+    clamp_number(config.processing, "downscale_height", "processing.downscale_height", 16, 540, 90, integer=True)
+    clamp_number(config.processing, "black_threshold", "processing.black_threshold", 0, 254, 28, integer=True)
+    clamp_number(config.processing, "saturation_threshold", "processing.saturation_threshold", 0, 254, 36, integer=True)
+    clamp_number(config.processing, "quantization_bins", "processing.quantization_bins", 4, 32, 16, integer=True)
+    clamp_number(config.processing, "saturation_multiplier", "processing.saturation_multiplier", 0.0, 3.0, 1.05)
+    clamp_number(config.processing, "brightness_multiplier", "processing.brightness_multiplier", 0.0, 3.0, 0.78)
+    clamp_number(config.processing, "minimum_mask_pixels", "processing.minimum_mask_pixels", 1, 10000, 24, integer=True)
+
+    clamp_number(config.visual_priority, "saliency_sensitivity", "visual_priority.saliency_sensitivity", 0.1, 5.0, 1.15)
+    clamp_number(config.visual_priority, "saliency_threshold", "visual_priority.saliency_threshold", 0.0, 0.95, 0.34)
+    clamp_number(config.visual_priority, "min_region_area_ratio", "visual_priority.min_region_area_ratio", 0.0001, 0.50, 0.0025)
+    clamp_number(config.visual_priority, "max_region_area_ratio", "visual_priority.max_region_area_ratio", 0.01, 0.95, 0.55)
+    if config.visual_priority.max_region_area_ratio < config.visual_priority.min_region_area_ratio:
+        issue("visual_priority.max_region_area_ratio", "must be greater than min_region_area_ratio", "using min_region_area_ratio")
+        set_value(config.visual_priority, "max_region_area_ratio", config.visual_priority.min_region_area_ratio)
+    clamp_number(config.visual_priority, "max_regions", "visual_priority.max_regions", 1, 32, 8, integer=True)
+    clamp_number(config.visual_priority, "selected_regions", "visual_priority.selected_regions", 1, 16, 3, integer=True)
+    clamp_number(config.visual_priority, "color_percentile", "visual_priority.color_percentile", 0.0, 0.98, 0.72)
+
+    clamp_number(config.smoothing, "strength", "smoothing.strength", 0.0, 0.98, 0.76)
+    clamp_number(config.smoothing, "minimum_step", "smoothing.minimum_step", 0, 64, 1, integer=True)
+
+    clamp_number(config.rgb, "minimum_update_interval_ms", "rgb.minimum_update_interval_ms", 0, 1000, 16, integer=True)
+    clamp_number(config.rgb, "minimum_color_delta", "rgb.minimum_color_delta", 0.0, 120.0, 2.0)
+    clamp_number(config.rgb, "reconnect_interval_seconds", "rgb.reconnect_interval_seconds", 1.0, 300.0, 15.0)
+    cleaned_device_names = [str(item).strip() for item in config.rgb.device_name_contains if str(item).strip()]
+    if len(cleaned_device_names) != len(config.rgb.device_name_contains):
+        issue("rgb.device_name_contains", "empty device-name filters were removed", "keep only non-empty strings")
+    if fix:
+        config.rgb.device_name_contains = cleaned_device_names
+
+    clamp_number(config.openrgb, "port", "openrgb.port", 1, 65535, 6742, integer=True)
+    clamp_number(config.openrgb, "connection_timeout_seconds", "openrgb.connection_timeout_seconds", 0.1, 30.0, 1.5)
+    clamp_number(config.openrgb, "retry_interval_seconds", "openrgb.retry_interval_seconds", 0.05, 10.0, 0.25)
+    clamp_number(config.openrgb, "socket_timeout_seconds", "openrgb.socket_timeout_seconds", 0.05, 10.0, 0.35)
+
+    choice(config.palette, "fallback_mode", "palette.fallback_mode", {"scene_harmony", "dominant"}, "scene_harmony")
+    choice(config.palette, "multi_color_mode", "palette.multi_color_mode", {"scene", "harmonic", "cinematic"}, "cinematic")
+    clamp_number(config.palette, "minimum_focal_confidence", "palette.minimum_focal_confidence", 0.0, 1.0, 0.35)
+    clamp_number(config.palette, "palette_size", "palette.palette_size", 1, 12, 1, integer=True)
+    clamp_number(config.palette, "harmony_strength", "palette.harmony_strength", 0.0, 1.0, 0.35)
+
+    clamp_number(config.gradient, "regions", "gradient.regions", 1, 12, 3, integer=True)
+    choice(config.gradient, "mode", "gradient.mode", {"horizontal", "vertical"}, "horizontal")
+
+    return issues
 
 
 def _from_mapping(cls: type[T], data: dict[str, Any]) -> T:

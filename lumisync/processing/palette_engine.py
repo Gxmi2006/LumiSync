@@ -33,16 +33,19 @@ def extract_weighted_palette(
 
     saturation = hsv_pixels[:, 1].astype(np.float64) / 255.0
     value = hsv_pixels[:, 2].astype(np.float64) / 255.0
-    mask = (
+    color_mask = (
         (hsv_pixels[:, 2] >= processing.black_threshold)
         & (hsv_pixels[:, 1] >= processing.saturation_threshold)
     )
+    neutral_mask = _neutral_candidate_mask(hsv_pixels, saliency_weights, processing)
+    mask = color_mask | neutral_mask
     if int(mask.sum()) < processing.minimum_mask_pixels:
         return None
 
     rgb = rgb_pixels[mask].astype(np.float64)
     sat = saturation[mask]
     val = value[mask]
+    neutral = neutral_mask[mask]
     saliency = saliency_weights[mask].astype(np.float64) if saliency_weights is not None else None
     if saliency is not None and len(saliency) >= processing.minimum_mask_pixels * 2:
         percentile = max(0.0, min(0.98, float(visual_priority.color_percentile)))
@@ -52,15 +55,23 @@ def extract_weighted_palette(
             rgb = rgb[priority_mask]
             sat = sat[priority_mask]
             val = val[priority_mask]
+            neutral = neutral[priority_mask]
             saliency = saliency[priority_mask]
 
-    weights = np.maximum(
+    chroma_weights = np.maximum(
         0.001,
         (sat ** max(0.1, visual_priority.saturation_power))
         * (val ** max(0.1, visual_priority.brightness_power)),
     )
+    neutral_weights = np.maximum(
+        0.001,
+        ((1.0 - sat) ** 1.35)
+        * (val ** max(0.1, visual_priority.brightness_power * 1.42)),
+    )
+    weights = np.where(neutral, neutral_weights * 1.28, chroma_weights)
     if saliency is not None:
-        weights *= np.maximum(0.05, saliency)
+        saliency_boost = np.clip(saliency, 0.0, 1.0) ** 1.55
+        weights *= 0.18 + saliency_boost * 1.90
 
     if visual_priority.use_kmeans and len(rgb) >= max(16, visual_priority.kmeans_clusters * 8):
         color, confidence, palette = _weighted_kmeans_color(
@@ -114,12 +125,15 @@ def extract_scene_harmony_palette(
 
     saturation_floor = max(8, int(processing.saturation_threshold * 0.55))
     value_floor = max(8, int(processing.black_threshold * 0.85))
-    mask = (val_u8 >= value_floor) & (sat_u8 >= saturation_floor)
+    color_mask = (val_u8 >= value_floor) & (sat_u8 >= saturation_floor)
+    neutral_mask = _neutral_scene_mask(sat_u8, val_u8, processing)
+    mask = color_mask | neutral_mask
 
     if int(mask.sum()) < processing.minimum_mask_pixels:
         saturation_floor = max(4, int(processing.saturation_threshold * 0.30))
         value_floor = max(6, int(processing.black_threshold * 0.65))
-        mask = (val_u8 >= value_floor) & (sat_u8 >= saturation_floor)
+        color_mask = (val_u8 >= value_floor) & (sat_u8 >= saturation_floor)
+        mask = color_mask | neutral_mask
 
     if int(mask.sum()) < processing.minimum_mask_pixels:
         return None
@@ -134,6 +148,7 @@ def extract_scene_harmony_palette(
     valid_gray = gray_flat[mask_flat]
     valid_sat = saturation.reshape(-1)[mask_flat]
     valid_val = value.reshape(-1)[mask_flat]
+    valid_neutral = neutral_mask.reshape(-1)[mask_flat]
 
     hue_bins = 24
     sat_bins = 6
@@ -143,12 +158,20 @@ def extract_scene_harmony_palette(
     val_key = np.minimum(val_bins - 1, valid_hsv[:, 2].astype(np.int32) * val_bins // 256)
     keys = hue_key * sat_bins * val_bins + sat_key * val_bins + val_key
     key_count = hue_bins * sat_bins * val_bins
+    key_image = np.full(mask.shape, -1, dtype=np.int32)
+    key_image.reshape(-1)[mask_flat] = keys
 
-    pixel_weights = np.maximum(
+    chroma_pixel_weights = np.maximum(
         0.001,
         (valid_sat ** max(0.1, visual_priority.saturation_power * 0.82))
         * (valid_val ** max(0.1, visual_priority.brightness_power * 0.85)),
     )
+    neutral_pixel_weights = np.maximum(
+        0.001,
+        ((1.0 - valid_sat) ** 1.2)
+        * (valid_val ** max(0.1, visual_priority.brightness_power * 1.35)),
+    )
+    pixel_weights = np.where(valid_neutral, neutral_pixel_weights * 1.18, chroma_pixel_weights)
     weighted_hist = np.bincount(keys, weights=pixel_weights, minlength=key_count)
     count_hist = np.bincount(keys, minlength=key_count)
     if weighted_hist.sum() <= 0:
@@ -158,6 +181,7 @@ def extract_scene_harmony_palette(
     scored: list[tuple[float, int, RGB, float]] = []
     total_weight = float(weighted_hist.sum())
     total_pixels = max(1, len(valid_rgb))
+    scene_gray_mean = float(np.mean(valid_gray))
 
     for key in candidate_keys:
         key = int(key)
@@ -172,17 +196,29 @@ def extract_scene_harmony_palette(
 
         weighted_share = float(weighted_hist[key] / max(0.001, total_weight))
         coverage = float(count_hist[key] / total_pixels)
+        mean_value = float(np.mean(cluster_val))
+        mean_sat = float(np.mean(cluster_sat))
         colorfulness = float(np.mean(cluster_sat) * np.sqrt(max(0.0, np.mean(cluster_val))))
-        coverage_score = min(1.0, float(np.sqrt(coverage * 10.0)))
+        coverage_score = min(1.0, float(np.sqrt(coverage * 5.0)))
         contrast = float(np.std(cluster_gray) * 2.5)
         elegance = _scene_elegance_score(cluster_sat, cluster_val)
+        objectness = _cluster_objectness(key_image == key, coverage)
+        luma_delta = min(1.0, abs(float(np.mean(cluster_gray)) - scene_gray_mean) * 2.6)
+        visibility = min(1.0, max(0.0, (mean_value - 0.10) / 0.55))
+        neutral_appeal = _neutral_appeal(mean_sat, mean_value, objectness, coverage)
+        background_penalty = _background_cluster_penalty(coverage, mean_value, colorfulness)
 
         score = (
-            weighted_share * 0.34
+            weighted_share * 0.19
             + colorfulness * 0.28
-            + coverage_score * 0.20
+            + coverage_score * 0.10
             + min(1.0, contrast) * 0.10
             + elegance * 0.08
+            + objectness * 0.17
+            + luma_delta * 0.04
+            + visibility * 0.08
+            + neutral_appeal * 0.16
+            - background_penalty
         )
         color = RGB.from_iterable(np.average(cluster_rgb, axis=0, weights=cluster_weight))
         scored.append((score, key, color, weighted_share))
@@ -331,6 +367,79 @@ def _scene_elegance_score(saturation: np.ndarray, value: np.ndarray) -> float:
     sat_balance = 1.0 - min(1.0, abs(mean_sat - 0.62) / 0.62)
     val_balance = 1.0 - min(1.0, abs(mean_val - 0.58) / 0.58)
     return max(0.0, min(1.0, sat_balance * 0.55 + val_balance * 0.45))
+
+
+def _neutral_candidate_mask(
+    hsv_pixels: np.ndarray,
+    saliency_weights: np.ndarray | None,
+    processing: ProcessingConfig,
+) -> np.ndarray:
+    value = hsv_pixels[:, 2]
+    saturation = hsv_pixels[:, 1]
+    neutral = (
+        (value >= max(82, processing.black_threshold * 3))
+        & (saturation <= max(42, processing.saturation_threshold * 2))
+    )
+    if saliency_weights is None or saliency_weights.size != neutral.size:
+        return neutral & (value >= 140)
+    saliency = np.clip(saliency_weights, 0.0, 1.0)
+    return neutral & ((saliency >= 0.18) | (value >= 150))
+
+
+def _neutral_scene_mask(
+    saturation: np.ndarray,
+    value: np.ndarray,
+    processing: ProcessingConfig,
+) -> np.ndarray:
+    return (
+        (value >= max(96, processing.black_threshold * 3))
+        & (saturation <= max(42, processing.saturation_threshold * 2))
+    )
+
+
+def _neutral_appeal(mean_sat: float, mean_value: float, objectness: float, coverage: float) -> float:
+    if mean_value < 0.34 or mean_sat > 0.38:
+        return 0.0
+    neutral = min(1.0, max(0.0, (0.38 - mean_sat) / 0.38))
+    visible = min(1.0, max(0.0, (mean_value - 0.34) / 0.52))
+    coverage_fit = 1.0 - min(0.85, max(0.0, coverage - 0.34) / 0.42)
+    return max(0.0, min(1.0, neutral * visible * (0.42 + objectness * 0.58) * coverage_fit))
+
+
+def _cluster_objectness(mask: np.ndarray, coverage: float) -> float:
+    if mask.size == 0:
+        return 0.0
+    total_pixels = int(mask.sum())
+    if total_pixels <= 0:
+        return 0.0
+
+    try:
+        count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(
+            mask.astype(np.uint8),
+            8,
+        )
+    except cv2.error:
+        return 0.0
+    if count <= 1:
+        return 0.0
+
+    areas = stats[1:, cv2.CC_STAT_AREA].astype(np.float64)
+    largest = float(areas.max(initial=0.0))
+    if largest <= 0:
+        return 0.0
+
+    coherence = largest / max(1.0, float(total_pixels))
+    frame_share = largest / max(1.0, float(mask.size))
+    size_score = min(1.0, float(np.sqrt(frame_share * 18.0)))
+    background_fit = 1.0 - min(0.78, max(0.0, coverage - 0.38) / 0.48)
+    return max(0.0, min(1.0, (coherence * 0.58 + size_score * 0.42) * background_fit))
+
+
+def _background_cluster_penalty(coverage: float, mean_value: float, colorfulness: float) -> float:
+    coverage_penalty = max(0.0, coverage - 0.44) * 0.55
+    dark_penalty = max(0.0, 0.32 - mean_value) * 0.42
+    dull_penalty = max(0.0, 0.34 - colorfulness) * 0.24
+    return min(0.34, coverage_penalty + dark_penalty + dull_penalty)
 
 
 def _dedupe_palette(colors: list[RGB], size: int) -> tuple[RGB, ...]:

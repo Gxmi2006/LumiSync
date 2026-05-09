@@ -9,16 +9,18 @@ from threading import Event, Lock
 import time
 
 from lumisync.effects.audio_reactive import AudioPulseProvider
-from lumisync.capture.region_capture import ScreenCapturer, compute_capture_region
+from lumisync.capture.monitor_detection import MonitorInfo, list_monitors
+from lumisync.capture.region_capture import CaptureFrame, ScreenCapturer, compute_capture_region, compute_region_from_rect
 from lumisync.core.color import BLACK, RGB
 from lumisync.processing.palette_extraction import PaletteExtractor
-from lumisync.core.config import Config, load_config
+from lumisync.core.config import Config, ConfigIssue, load_config_with_issues
 from lumisync.backends.backend_manager import ControllerManager
 from lumisync.overlays.debug_overlay import DebugOverlay, OverlayData
 from lumisync.ui.hotkeys import HotkeyManager
 from lumisync.core.logging_setup import setup_logging
 from lumisync.core.smoothing import ColorSmoother
 from lumisync.diagnostics.diagnostics_report import DiagnosticsReport
+from lumisync.diagnostics.setup_check import SetupCheckReport
 from lumisync.utils.startup import install_startup_shortcut, reconcile_startup, uninstall_startup_shortcut
 from lumisync.ui.tray import TrayIcon
 from lumisync.capture.window_capture import WindowFinder
@@ -37,7 +39,7 @@ class RuntimeState:
 class LumiSyncApp:
     def __init__(self, config_path: Path | None, debug_overlay_override: bool = False) -> None:
         self.config_path = config_path
-        self.config = load_config(config_path)
+        self.config, self.config_issues = load_config_with_issues(config_path)
         if debug_overlay_override:
             self.config.app.debug_overlay = True
 
@@ -74,6 +76,7 @@ class LumiSyncApp:
 
     def run(self) -> int:
         LOGGER.info("Starting LumiSync")
+        self._log_config_issues(self.config_issues)
         if self.config.app.manage_startup_from_config:
             try:
                 reconcile_startup(self.config, self.config_path)
@@ -146,28 +149,14 @@ class LumiSyncApp:
             self._stop.wait(sleep_time)
 
     def _process_frame(self) -> None:
-        window = self.window_finder.get_window()
-        if window is None:
-            self._set_status("waiting for target window")
-            return
-        if window.minimized:
-            self._set_status("target window minimized")
-            return
-
-        region = compute_capture_region(window, self.config.capture)
-        if region is None:
-            self._set_status("capture region invalid")
-            return
-
-        frame = self.capturer.grab(region)
+        frame = self._capture_frame()
         if frame is None:
-            self._set_status("capture failed")
             return
 
         sample = self.extractor.extract(frame.rgb)
         if sample is None:
-            self._set_status("no vivid pixels")
-            self._update_overlay(region, self.state.last_color)
+            self._set_status("no usable color pixels")
+            self._update_overlay(frame.region, self.state.last_color)
             return
 
         target = sample.color.scale_brightness(self.audio.multiplier())
@@ -184,15 +173,73 @@ class LumiSyncApp:
         self.state.last_color = smoothed
         self.tray.update_color(smoothed)
         self._set_status("running" if updated else "running")
-        self._update_overlay(region, smoothed, sample.visual_debug)
+        self._update_overlay(frame.region, smoothed, sample.visual_debug)
+
+    def _capture_frame(self) -> CaptureFrame | None:
+        mode = self.config.app.capture_mode.lower()
+        if mode in {"monitor", "region"}:
+            return self._capture_monitor_or_region(mode)
+
+        window = self.window_finder.get_window()
+        if window is None:
+            self._set_status("waiting for target window")
+            return None
+        if window.minimized:
+            self._set_status("target window minimized")
+            return None
+
+        region = compute_capture_region(window, self.config.capture)
+        if region is None:
+            self._set_status("capture region invalid")
+            return None
+
+        frame = self.capturer.grab(region)
+        if frame is None:
+            self._set_status("capture failed")
+            return None
+        return frame
+
+    def _capture_monitor_or_region(self, mode: str) -> CaptureFrame | None:
+        monitor = self._select_monitor(mode)
+        if monitor is None:
+            self._set_status("waiting for monitor")
+            return None
+        region = compute_region_from_rect(monitor.rect, self.config.capture)
+        if region is None:
+            self._set_status("monitor capture region invalid")
+            return None
+        frame = self.capturer.grab(region)
+        if frame is None:
+            self._set_status("monitor capture failed")
+            return None
+        return frame
+
+    def _select_monitor(self, mode: str) -> MonitorInfo | None:
+        try:
+            monitors = list_monitors()
+        except Exception as exc:
+            LOGGER.warning("Monitor detection failed: %s", exc)
+            return None
+        if not monitors:
+            return None
+        if mode == "region":
+            return next((item for item in monitors if item.is_virtual_desktop), monitors[0])
+        wanted = int(self.config.monitor.index)
+        match = next((item for item in monitors if item.index == wanted), None)
+        if match is not None:
+            return match
+        fallback = next((item for item in monitors if not item.is_virtual_desktop), monitors[0])
+        LOGGER.warning("Monitor index %s not found; using %s", wanted, fallback.label)
+        return fallback
 
     def _reload_config(self) -> None:
         try:
-            new_config = load_config(self.config_path)
+            new_config, issues = load_config_with_issues(self.config_path)
         except Exception as exc:
             LOGGER.warning("Config reload failed: %s", exc)
             return
 
+        self._log_config_issues(issues)
         debug_was_enabled = self.overlay.enabled
         self.config = new_config
         self.window_finder.update_config(new_config.window)
@@ -212,6 +259,11 @@ class LumiSyncApp:
         elif not new_config.app.debug_overlay and debug_was_enabled:
             self.overlay.stop()
         LOGGER.info("Config reloaded")
+
+    @staticmethod
+    def _log_config_issues(issues: list[ConfigIssue]) -> None:
+        for issue in issues:
+            LOGGER.warning("Config %s", issue.line())
 
     def _update_overlay(self, region, color: RGB, visual_debug=None) -> None:
         self.overlay.update(
@@ -248,14 +300,25 @@ class LumiSyncApp:
 
 def run_from_args(args: argparse.Namespace) -> int:
     config_path = Path(args.config).resolve() if args.config else None
-    config = load_config(config_path)
+    try:
+        config, config_issues = load_config_with_issues(config_path)
+    except Exception as exc:
+        if args.setup_check:
+            print("# LumiSync Setup Check")
+            print("")
+            print(f"- [FAIL] Config: could not load config.toml: {exc}")
+            print("- Fix: check TOML syntax, quoted strings, booleans, and numeric values.")
+            print("- Tip: compare your file with the repository config.toml sample.")
+            return 2
+        raise
     log_path = setup_logging(
         config.logging.level or config.app.log_level,
         config.logging.max_bytes,
         config.logging.backup_count,
-        console_enabled=not args.diagnostics,
+        console_enabled=not (args.diagnostics or args.setup_check),
     )
     LOGGER.info("Logging to %s", log_path)
+    LumiSyncApp._log_config_issues(config_issues)
 
     if args.install_startup:
         path = install_startup_shortcut(config, config_path)
@@ -281,7 +344,20 @@ def run_from_args(args: argparse.Namespace) -> int:
     if args.diagnostics:
         manager = ControllerManager(config)
         report = manager.initialize()
-        print(DiagnosticsReport(config=config, backend_report=report).to_markdown())
+        print(DiagnosticsReport(config=config, backend_report=report, config_issues=tuple(config_issues)).to_markdown())
+        manager.close()
+        return 0
+    if args.setup_check:
+        manager = ControllerManager(config)
+        report = manager.initialize()
+        print(
+            SetupCheckReport(
+                config=config,
+                config_path=config_path,
+                config_issues=tuple(config_issues),
+                backend_report=report,
+            ).to_markdown()
+        )
         manager.close()
         return 0
     if args.test_color:

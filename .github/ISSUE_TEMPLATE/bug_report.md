@@ -28,10 +28,17 @@ What did you expect?
 - Capture mode:
 - RGB backend: Aura / OpenRGB / software fallback
 - Hardware model:
+- OpenRGB version:
+- OpenRGB SDK Server running: yes / no
 
-## Backend Report
+## Diagnostics
 
-Paste the startup backend report:
+Please run these commands and paste the output:
+
+```powershell
+python -m lumisync --setup-check
+python -m lumisync --diagnostics
+```
 
 ```text
 
@@ -40,3 +47,7 @@ Paste the startup backend report:
 ## Logs
 
 Attach or paste the relevant lines from `%APPDATA%\LumiSync\logs\lumisync.log`.
+
+## Screenshots / Video
+
+If this is a color-selection issue, include a screenshot of the source frame and the color LumiSync picked.

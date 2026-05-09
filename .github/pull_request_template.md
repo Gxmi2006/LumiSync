@@ -23,8 +23,16 @@ Commands run:
 Hardware/backend tested:
 
 - [ ] Software fallback
-- [ ] Aura
 - [ ] OpenRGB
+- [ ] Aura legacy
+
+Checklist:
+
+- [ ] `python -m compileall lumisync tests`
+- [ ] `python -m unittest discover -s tests`
+- [ ] `python -m lumisync --setup-check`
+- [ ] `python -m lumisync --diagnostics`
+- [ ] Docs updated if behavior/config changed
 
 ## Notes
 

@@ -14,10 +14,18 @@ What user problem would this solve?
 
 Describe the feature.
 
+## User Benefit
+
+Who needs this and what would feel better after it ships?
+
 ## Technical Notes
 
-Capture, processing, effect, backend, UI, or profile impact?
+Capture, processing, effect, backend, UI, profile, config, or packaging impact?
 
 ## Alternatives
 
 What other approaches did you consider?
+
+## References
+
+Screenshots, videos, hardware links, or comparable projects.

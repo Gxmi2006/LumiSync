@@ -87,6 +87,14 @@ To see what LumiSync detected:
 python -m lumisync --diagnostics
 ```
 
+For first-time setup help, run:
+
+```powershell
+python -m lumisync --setup-check
+```
+
+`--setup-check` verifies Python dependencies, OpenRGB SDK Server, detected RGB devices, global hotkey support, and config safety. It prints exact fix steps when something is missing.
+
 Expected backend behavior:
 
 ```text
@@ -133,12 +141,13 @@ When a scene has an obvious visual subject, LumiSync prioritizes it:
 
 - neon rings and glow effects
 - saturated foreground objects
+- white and gray highlight rings
 - cinematic highlights
 - high-contrast edges
 - centered visual subjects
 - temporally stable regions
 
-Example: a dark scene with a purple glowing ring should output purple, not muddy dark blue.
+Example: a dark scene with a green, purple, white, or gray glowing ring should output the ring color, not muddy dark blue.
 
 ### Scene Harmony Mode
 
@@ -179,6 +188,12 @@ OpenRGB is the default hardware backend. It works with many keyboards, mice, mot
 
 ```powershell
 python -m lumisync --diagnostics
+```
+
+Run the setup checker when onboarding or debugging another PC:
+
+```powershell
+python -m lumisync --setup-check
 ```
 
 Useful statuses:
@@ -244,6 +259,29 @@ Sample only the center of a video or emulator:
 left_ratio = 0.12
 top_ratio = 0.08
 width_ratio = 0.76
+height_ratio = 0.82
+```
+
+Sync a whole monitor:
+
+```toml
+[app]
+capture_mode = "monitor"
+
+[monitor]
+index = 1
+```
+
+Sync a custom desktop region:
+
+```toml
+[app]
+capture_mode = "region"
+
+[capture]
+left_ratio = 0.10
+top_ratio = 0.08
+width_ratio = 0.80
 height_ratio = 0.82
 ```
 
@@ -347,7 +385,7 @@ saturation_multiplier = 1.05
 brightness_multiplier = 0.78
 ```
 
-### A bright object is being missed
+### A bright, white, or gray object is being missed
 
 Lower the focal threshold:
 
@@ -358,6 +396,8 @@ saliency_threshold = 0.28
 [palette]
 minimum_focal_confidence = 0.30
 ```
+
+If white/gray UI text wins too often, raise `minimum_focal_confidence` slightly or narrow `[capture]` to the video/visualizer area.
 
 ### Colors flicker
 
@@ -372,6 +412,16 @@ minimum_color_delta = 4.0
 ### Wrong screen area is sampled
 
 Run with `--debug-overlay`, then tune `[window]` and `[capture]`.
+
+### First-time setup is confusing
+
+Run:
+
+```powershell
+python -m lumisync --setup-check
+```
+
+It checks dependencies, OpenRGB SDK Server, devices, hotkeys, and config values.
 
 Logs are written to:
 
@@ -408,7 +458,7 @@ lumisync/
   effects/      adaptive brightness and audio pulse hooks
   ui/           tray and hotkeys
   overlays/     debug overlay
-  diagnostics/  backend/runtime reports
+  diagnostics/  backend/runtime reports and setup checks
   profiles/     profile loading
   utils/        Windows startup helpers
 ```
@@ -419,7 +469,7 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Roadmap
 
-- Full monitor sync runtime mode
+- Monitor and region capture refinements
 - Edge sampling and Ambilight-style zone mapping
 - DXcam/Desktop Duplication capture backend
 - Automatic fullscreen detection and profile switching
@@ -428,6 +478,14 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - OBS and Stream Deck integrations
 - GUI profile editor
 - Signed Windows builds
+
+## Known Limitations
+
+- OpenRGB must expose the device before LumiSync can control it.
+- The packaged `LumiSync.exe` is windowed for background use; run source commands from PowerShell when you need visible diagnostics output.
+- Aura / Armoury Crate support is legacy opt-in and may report no devices on many ASUS laptops.
+- Windows capture is based on visible desktop pixels; protected video surfaces or minimized windows may not capture useful frames.
+- Multi-color zone gradients are available in code but disabled by default to keep the default experience calm and single-color.
 
 ## Contributing
 

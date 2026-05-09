@@ -26,6 +26,16 @@ pip install -r requirements.txt
 
 ## 3. Run Diagnostics
 
+First run the setup checker:
+
+```powershell
+python -m lumisync --setup-check
+```
+
+It verifies dependencies, OpenRGB SDK Server, RGB devices, hotkey support, and config safety.
+
+Then run diagnostics:
+
 ```powershell
 python -m lumisync --diagnostics
 ```
@@ -69,7 +79,28 @@ height_ratio = 0.82
 
 Press `Ctrl+Alt+R` to reload config.
 
-## 6. Keyboard Color Output
+## 6. Monitor Or Region Sync
+
+Whole monitor:
+
+```toml
+[app]
+capture_mode = "monitor"
+
+[monitor]
+index = 1
+```
+
+Custom desktop region:
+
+```toml
+[app]
+capture_mode = "region"
+```
+
+Use `[capture]` ratios to crop the region.
+
+## 7. Keyboard Color Output
 
 The default config sends one calm cinematic scene color:
 

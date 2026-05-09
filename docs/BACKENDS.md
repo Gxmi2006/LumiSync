@@ -45,6 +45,14 @@ Common statuses:
 - `no devices`: OpenRGB connected but exposed no usable devices.
 - `not found`: the Python OpenRGB client is not installed.
 
+For a guided check, run:
+
+```powershell
+python -m lumisync --setup-check
+```
+
+It confirms whether the SDK Server is listening, whether OpenRGB exposed usable devices, and whether LumiSync fell back to software mode.
+
 ## Single-Color Output
 
 By default, LumiSync sends one best cinematic scene color:
