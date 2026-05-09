@@ -65,8 +65,8 @@ class ProcessingConfig:
     black_threshold: int = 28
     saturation_threshold: int = 40
     quantization_bins: int = 16
-    saturation_multiplier: float = 1.15
-    brightness_multiplier: float = 0.90
+    saturation_multiplier: float = 1.05
+    brightness_multiplier: float = 0.78
     minimum_mask_pixels: int = 24
 
 
@@ -102,7 +102,7 @@ class VisualPriorityConfig:
 
 @dataclass(slots=True)
 class SmoothingConfig:
-    strength: float = 0.62
+    strength: float = 0.76
     minimum_step: int = 1
 
 
@@ -174,7 +174,7 @@ class GradientConfig:
 @dataclass(slots=True)
 class PaletteConfig:
     fallback_mode: str = "scene_harmony"
-    multi_color_mode: str = "scene"
+    multi_color_mode: str = "cinematic"
     minimum_focal_confidence: float = 0.35
     palette_size: int = 3
     harmony_strength: float = 0.35

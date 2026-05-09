@@ -41,7 +41,7 @@ Scene harmony is used when no focal object is strong enough.
 ```toml
 [palette]
 fallback_mode = "scene_harmony"
-multi_color_mode = "scene"
+multi_color_mode = "cinematic"
 minimum_focal_confidence = 0.35
 palette_size = 3
 harmony_strength = 0.35
@@ -52,7 +52,7 @@ Rules of thumb:
 - Increase `minimum_focal_confidence` if small highlights win too often.
 - Lower it if neon rings, magic effects, or anime highlights are missed.
 - Use `multi_color_mode = "harmonic"` for cleaner generated gradients.
-- Use `multi_color_mode = "cinematic"` for darker, subtler movie lighting.
+- Use `multi_color_mode = "scene"` if you want brighter colors sampled directly from the frame.
 
 ## Visual Priority
 

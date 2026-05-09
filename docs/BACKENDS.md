@@ -56,7 +56,7 @@ regions = 3
 send_regions_to_zones = true
 
 [palette]
-multi_color_mode = "scene"
+multi_color_mode = "cinematic"
 palette_size = 3
 ```
 

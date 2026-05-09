@@ -153,7 +153,7 @@ When there is no single appealing object, LumiSync switches to scene harmony:
 ```toml
 [palette]
 fallback_mode = "scene_harmony"
-multi_color_mode = "scene"
+multi_color_mode = "cinematic"
 minimum_focal_confidence = 0.35
 palette_size = 3
 harmony_strength = 0.35
@@ -165,7 +165,7 @@ Palette modes:
 | --- | --- |
 | `scene` | Uses colors sampled from the current frame |
 | `harmonic` | Generates elegant analogous colors around the selected hue |
-| `cinematic` | Uses restrained lower-brightness palette styling |
+| `cinematic` | Default. Uses restrained lower-brightness palette styling |
 
 ## OpenRGB Setup
 
@@ -292,7 +292,7 @@ downscale_width = 160
 downscale_height = 90
 
 [smoothing]
-strength = 0.62
+strength = 0.76
 
 [rgb]
 minimum_update_interval_ms = 16
@@ -343,7 +343,8 @@ Keep scene harmony enabled and raise saturation slightly:
 fallback_mode = "scene_harmony"
 
 [processing]
-saturation_multiplier = 1.18
+saturation_multiplier = 1.05
+brightness_multiplier = 0.78
 ```
 
 ### A bright object is being missed

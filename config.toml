@@ -57,8 +57,8 @@ downscale_height = 90
 black_threshold = 28
 saturation_threshold = 36
 quantization_bins = 16
-saturation_multiplier = 1.12
-brightness_multiplier = 0.88
+saturation_multiplier = 1.05
+brightness_multiplier = 0.78
 minimum_mask_pixels = 24
 ignore_letterbox_bars = true
 
@@ -93,7 +93,7 @@ debug_saliency_map = true
 debug_palette = true
 
 [smoothing]
-strength = 0.62
+strength = 0.76
 minimum_step = 1
 transition_curve = "exponential"
 
@@ -161,7 +161,7 @@ send_regions_to_zones = true
 
 [palette]
 fallback_mode = "scene_harmony"     # scene_harmony, dominant
-multi_color_mode = "scene"          # scene, harmonic, cinematic
+multi_color_mode = "cinematic"      # scene, harmonic, cinematic
 minimum_focal_confidence = 0.35
 palette_size = 3
 harmony_strength = 0.35
@@ -180,11 +180,11 @@ capture_backend = "mss"
 downscale_interpolation = "area"
 
 [profiles.default]
-description = "Balanced low-latency ambient sync for everyday use."
+description = "Balanced cinematic ambient sync for everyday use."
 fps = 20
-smoothing_strength = 0.62
-brightness_multiplier = 0.88
-saturation_multiplier = 1.12
+smoothing_strength = 0.76
+brightness_multiplier = 0.78
+saturation_multiplier = 1.05
 
 [profiles.gaming]
 description = "Responsive profile for games and emulators."
