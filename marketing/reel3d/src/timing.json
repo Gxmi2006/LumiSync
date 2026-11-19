@@ -1,0 +1,606 @@
+{
+ "scratch": false,
+ "duration": 33.71999999999999,
+ "words": [
+  {
+   "text": "Your",
+   "start": 0.3,
+   "end": 0.45999999999999996,
+   "scene": "hook"
+  },
+  {
+   "text": "keyboard",
+   "start": 0.54,
+   "end": 0.94,
+   "scene": "hook"
+  },
+  {
+   "text": "can",
+   "start": 1.02,
+   "end": 1.1,
+   "scene": "hook"
+  },
+  {
+   "text": "show",
+   "start": 1.18,
+   "end": 1.34,
+   "scene": "hook"
+  },
+  {
+   "text": "sixteen",
+   "start": 1.5,
+   "end": 1.98,
+   "scene": "hook"
+  },
+  {
+   "text": "million",
+   "start": 2.2199999999999998,
+   "end": 2.6199999999999997,
+   "scene": "hook"
+  },
+  {
+   "text": "colours,",
+   "start": 2.6999999999999997,
+   "end": 3.34,
+   "scene": "hook"
+  },
+  {
+   "text": "so",
+   "start": 3.42,
+   "end": 3.6599999999999997,
+   "scene": "hook"
+  },
+  {
+   "text": "why",
+   "start": 3.82,
+   "end": 3.98,
+   "scene": "hook"
+  },
+  {
+   "text": "is",
+   "start": 4.0200000000000005,
+   "end": 4.06,
+   "scene": "hook"
+  },
+  {
+   "text": "it",
+   "start": 4.14,
+   "end": 4.22,
+   "scene": "hook"
+  },
+  {
+   "text": "still",
+   "start": 4.34,
+   "end": 4.46,
+   "scene": "hook"
+  },
+  {
+   "text": "glowing",
+   "start": 4.54,
+   "end": 4.859999999999999,
+   "scene": "hook"
+  },
+  {
+   "text": "plain",
+   "start": 4.9399999999999995,
+   "end": 5.26,
+   "scene": "hook"
+  },
+  {
+   "text": "white?",
+   "start": 5.34,
+   "end": 5.859999999999999,
+   "scene": "hook"
+  },
+  {
+   "text": "Watch",
+   "start": 6.06,
+   "end": 6.3,
+   "scene": "reveal"
+  },
+  {
+   "text": "this.",
+   "start": 6.38,
+   "end": 6.8999999999999995,
+   "scene": "reveal"
+  },
+  {
+   "text": "This",
+   "start": 7.1,
+   "end": 7.5,
+   "scene": "demo"
+  },
+  {
+   "text": "is",
+   "start": 7.58,
+   "end": 7.66,
+   "scene": "demo"
+  },
+  {
+   "text": "LumiSync.",
+   "start": 7.819999999999999,
+   "end": 8.46,
+   "scene": "demo"
+  },
+  {
+   "text": "Games,",
+   "start": 8.860000000000001,
+   "end": 9.42,
+   "scene": "demo"
+  },
+  {
+   "text": "movies,",
+   "start": 9.5,
+   "end": 9.98,
+   "scene": "demo"
+  },
+  {
+   "text": "anime,",
+   "start": 10.06,
+   "end": 10.780000000000001,
+   "scene": "demo"
+  },
+  {
+   "text": "it",
+   "start": 10.860000000000001,
+   "end": 10.940000000000001,
+   "scene": "demo"
+  },
+  {
+   "text": "watches",
+   "start": 11.020000000000001,
+   "end": 11.34,
+   "scene": "demo"
+  },
+  {
+   "text": "your",
+   "start": 11.42,
+   "end": 11.46,
+   "scene": "demo"
+  },
+  {
+   "text": "screen",
+   "start": 11.5,
+   "end": 11.9,
+   "scene": "demo"
+  },
+  {
+   "text": "and",
+   "start": 11.98,
+   "end": 12.06,
+   "scene": "demo"
+  },
+  {
+   "text": "lights",
+   "start": 12.14,
+   "end": 12.38,
+   "scene": "demo"
+  },
+  {
+   "text": "your",
+   "start": 12.46,
+   "end": 12.540000000000001,
+   "scene": "demo"
+  },
+  {
+   "text": "keyboard",
+   "start": 12.74,
+   "end": 12.940000000000001,
+   "scene": "demo"
+  },
+  {
+   "text": "to",
+   "start": 12.98,
+   "end": 13.020000000000001,
+   "scene": "demo"
+  },
+  {
+   "text": "match.",
+   "start": 13.180000000000001,
+   "end": 13.66,
+   "scene": "demo"
+  },
+  {
+   "text": "It",
+   "start": 13.82,
+   "end": 13.9,
+   "scene": "focal"
+  },
+  {
+   "text": "finds",
+   "start": 13.98,
+   "end": 14.273000000000001,
+   "scene": "focal"
+  },
+  {
+   "text": "the",
+   "start": 14.327,
+   "end": 14.38,
+   "scene": "focal"
+  },
+  {
+   "text": "thing",
+   "start": 14.46,
+   "end": 14.540000000000001,
+   "scene": "focal"
+  },
+  {
+   "text": "that's",
+   "start": 14.620000000000001,
+   "end": 14.860000000000001,
+   "scene": "focal"
+  },
+  {
+   "text": "actually",
+   "start": 14.940000000000001,
+   "end": 15.34,
+   "scene": "focal"
+  },
+  {
+   "text": "glowing,",
+   "start": 15.42,
+   "end": 15.82,
+   "scene": "focal"
+  },
+  {
+   "text": "instead",
+   "start": 15.98,
+   "end": 16.14,
+   "scene": "focal"
+  },
+  {
+   "text": "of",
+   "start": 16.22,
+   "end": 16.3,
+   "scene": "focal"
+  },
+  {
+   "text": "averaging",
+   "start": 16.42,
+   "end": 16.78,
+   "scene": "focal"
+  },
+  {
+   "text": "everything",
+   "start": 16.98,
+   "end": 17.18,
+   "scene": "focal"
+  },
+  {
+   "text": "into",
+   "start": 17.26,
+   "end": 17.34,
+   "scene": "focal"
+  },
+  {
+   "text": "mud.",
+   "start": 17.5,
+   "end": 18.14,
+   "scene": "focal"
+  },
+  {
+   "text": "And",
+   "start": 18.26,
+   "end": 18.38,
+   "scene": "optimise"
+  },
+  {
+   "text": "it's",
+   "start": 18.46,
+   "end": 18.78,
+   "scene": "optimise"
+  },
+  {
+   "text": "seriously",
+   "start": 18.900000000000002,
+   "end": 19.34,
+   "scene": "optimise"
+  },
+  {
+   "text": "light.",
+   "start": 19.42,
+   "end": 19.98,
+   "scene": "optimise"
+  },
+  {
+   "text": "It",
+   "start": 20.060000000000002,
+   "end": 20.14,
+   "scene": "optimise"
+  },
+  {
+   "text": "shrinks",
+   "start": 20.220000000000002,
+   "end": 20.46,
+   "scene": "optimise"
+  },
+  {
+   "text": "your",
+   "start": 20.54,
+   "end": 20.62,
+   "scene": "optimise"
+  },
+  {
+   "text": "screen",
+   "start": 20.740000000000002,
+   "end": 20.86,
+   "scene": "optimise"
+  },
+  {
+   "text": "to",
+   "start": 20.94,
+   "end": 21.02,
+   "scene": "optimise"
+  },
+  {
+   "text": "just",
+   "start": 21.1,
+   "end": 21.18,
+   "scene": "optimise"
+  },
+  {
+   "text": "a",
+   "start": 21.26,
+   "end": 21.34,
+   "scene": "optimise"
+  },
+  {
+   "text": "hundred",
+   "start": 21.38,
+   "end": 21.580000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "and",
+   "start": 21.66,
+   "end": 21.740000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "sixty",
+   "start": 21.82,
+   "end": 22.060000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "by",
+   "start": 22.14,
+   "end": 22.38,
+   "scene": "optimise"
+  },
+  {
+   "text": "ninety",
+   "start": 22.42,
+   "end": 22.62,
+   "scene": "optimise"
+  },
+  {
+   "text": "pixels",
+   "start": 22.7,
+   "end": 23.1,
+   "scene": "optimise"
+  },
+  {
+   "text": "before",
+   "start": 23.18,
+   "end": 23.42,
+   "scene": "optimise"
+  },
+  {
+   "text": "it",
+   "start": 23.46,
+   "end": 23.5,
+   "scene": "optimise"
+  },
+  {
+   "text": "does",
+   "start": 23.580000000000002,
+   "end": 23.82,
+   "scene": "optimise"
+  },
+  {
+   "text": "any",
+   "start": 23.94,
+   "end": 24.060000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "maths,",
+   "start": 24.14,
+   "end": 24.78,
+   "scene": "optimise"
+  },
+  {
+   "text": "and",
+   "start": 24.86,
+   "end": 25.1,
+   "scene": "optimise"
+  },
+  {
+   "text": "it",
+   "start": 25.18,
+   "end": 25.26,
+   "scene": "optimise"
+  },
+  {
+   "text": "skips",
+   "start": 25.34,
+   "end": 25.66,
+   "scene": "optimise"
+  },
+  {
+   "text": "updates",
+   "start": 25.86,
+   "end": 26.060000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "when",
+   "start": 26.14,
+   "end": 26.220000000000002,
+   "scene": "optimise"
+  },
+  {
+   "text": "nothing",
+   "start": 26.34,
+   "end": 26.46,
+   "scene": "optimise"
+  },
+  {
+   "text": "changes.",
+   "start": 26.54,
+   "end": 27.34,
+   "scene": "optimise"
+  },
+  {
+   "text": "It",
+   "start": 27.38,
+   "end": 27.42,
+   "scene": "features"
+  },
+  {
+   "text": "works",
+   "start": 27.5,
+   "end": 27.66,
+   "scene": "features"
+  },
+  {
+   "text": "with",
+   "start": 27.740000000000002,
+   "end": 27.82,
+   "scene": "features"
+  },
+  {
+   "text": "OpenRGB,",
+   "start": 27.900000000000002,
+   "end": 28.78,
+   "scene": "features"
+  },
+  {
+   "text": "and",
+   "start": 28.900000000000002,
+   "end": 29.02,
+   "scene": "features"
+  },
+  {
+   "text": "it's",
+   "start": 29.1,
+   "end": 29.26,
+   "scene": "features"
+  },
+  {
+   "text": "completely",
+   "start": 29.34,
+   "end": 29.82,
+   "scene": "features"
+  },
+  {
+   "text": "free",
+   "start": 29.98,
+   "end": 30.220000000000002,
+   "scene": "features"
+  },
+  {
+   "text": "and",
+   "start": 30.3,
+   "end": 30.38,
+   "scene": "features"
+  },
+  {
+   "text": "open",
+   "start": 30.5,
+   "end": 30.62,
+   "scene": "features"
+  },
+  {
+   "text": "source.",
+   "start": 30.7,
+   "end": 31.34,
+   "scene": "features"
+  },
+  {
+   "text": "Link's",
+   "start": 31.42,
+   "end": 31.580000000000002,
+   "scene": "cta"
+  },
+  {
+   "text": "in",
+   "start": 31.62,
+   "end": 31.66,
+   "scene": "cta"
+  },
+  {
+   "text": "my",
+   "start": 31.740000000000002,
+   "end": 31.82,
+   "scene": "cta"
+  },
+  {
+   "text": "bio.",
+   "start": 31.98,
+   "end": 32.379999999999995,
+   "scene": "cta"
+  },
+  {
+   "text": "Go",
+   "start": 32.459999999999994,
+   "end": 32.54,
+   "scene": "cta"
+  },
+  {
+   "text": "give",
+   "start": 32.62,
+   "end": 32.699999999999996,
+   "scene": "cta"
+  },
+  {
+   "text": "it",
+   "start": 32.727,
+   "end": 32.753,
+   "scene": "cta"
+  },
+  {
+   "text": "a",
+   "start": 32.779999999999994,
+   "end": 32.86,
+   "scene": "cta"
+  },
+  {
+   "text": "star.",
+   "start": 33.019999999999996,
+   "end": 33.419999999999995,
+   "scene": "cta"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "hook",
+   "start": 0.3
+  },
+  {
+   "id": "reveal",
+   "start": 6.06
+  },
+  {
+   "id": "demo",
+   "start": 7.1
+  },
+  {
+   "id": "focal",
+   "start": 13.82
+  },
+  {
+   "id": "optimise",
+   "start": 18.26
+  },
+  {
+   "id": "features",
+   "start": 27.38
+  },
+  {
+   "id": "cta",
+   "start": 31.42
+  }
+ ]
+}

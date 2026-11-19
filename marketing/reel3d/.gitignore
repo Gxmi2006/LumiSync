@@ -1,0 +1,7 @@
+# Local secrets written by `elevenlabs onboard`
+/.env.local
+
+# Installed packages and render output (the final video is shared separately, not committed)
+/node_modules/
+/build/
+/out/

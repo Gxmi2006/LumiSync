@@ -1,10 +1,11 @@
-# LumiSync
+﻿# LumiSync
 
 [![Windows 11](https://img.shields.io/badge/Windows-11-0A84FF?style=flat-square)](#requirements)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square)](#quick-start)
 [![OpenRGB](https://img.shields.io/badge/OpenRGB-SDK%20Server%20Required-22C55E?style=flat-square)](#openrgb-setup)
 [![PyInstaller](https://img.shields.io/badge/Build-PyInstaller-111827?style=flat-square)](#build)
 [![License](https://img.shields.io/badge/License-MIT-111827?style=flat-square)](#license)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/gxmi06)
 
 **Lightweight OpenRGB ambient lighting for Windows.**
 
@@ -499,6 +500,16 @@ Good areas to help:
 - write hardware-specific setup guides
 
 See [docs/GITHUB_ECOSYSTEM.md](docs/GITHUB_ECOSYSTEM.md) for labels, issue templates, release naming, and project presentation ideas.
+
+## Support LumiSync
+
+LumiSync is free and open source. If it makes your setup better and you'd like to help keep it going, you can [buy me a coffee](https://buymeacoffee.com/gxmi06). Starring the repo, reporting bugs and sharing it with other RGB fans helps a lot too.
+
+## Credits
+
+- Promo reel voice-over generated with [ElevenLabs](https://elevenlabs.io) text-to-speech (voice: Liam).
+- Promo reel animated with [Remotion](https://www.remotion.dev) and [Three.js](https://threejs.org). Source in [`marketing/`](marketing/).
+- RGB hardware control through [OpenRGB](https://openrgb.org).
 
 ## License
 
