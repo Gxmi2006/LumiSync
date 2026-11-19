@@ -11,9 +11,12 @@ All notable changes to LumiSync are documented here.
 - Config validation with safe clamping for risky runtime values.
 - Monitor and virtual-desktop region capture support in the runtime loop.
 - Regression tests for visual priority, config validation, smoothing, and backend selection helpers.
+- RGB fan support in OpenRGB device selection: fan hubs (cooler type) and motherboard ARGB headers are now picked up next to keyboards, and `fan`/`cooler` were added to the default `device_name_contains` list.
+- README section on setting up RGB fans.
 
 ### Improved
 
+- OpenRGB device-type matching now uses the enum name. Newer openrgb-python versions return a number from `str(device.type)`, so keyboards were never matched by type before.
 - Visual Priority Engine now recognizes bright white and gray highlight rings, not only saturated colors.
 - Scene harmony scoring now penalizes broad dark backgrounds more strongly.
 - Setup and diagnostics commands avoid noisy console logging.

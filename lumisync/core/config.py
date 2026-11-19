@@ -149,6 +149,8 @@ class RgbConfig:
             "motherboard",
             "gpu",
             "ram",
+            "fan",
+            "cooler",
         ]
     )
 

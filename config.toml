@@ -102,7 +102,7 @@ minimum_update_interval_ms = 16
 minimum_color_delta = 2.0
 reconnect_interval_seconds = 15.0
 prefer_keyboard_devices = true
-device_name_contains = ["keyboard", "laptop", "asus", "tuf", "mouse", "strip", "led", "motherboard", "gpu", "ram"]
+device_name_contains = ["keyboard", "laptop", "asus", "tuf", "mouse", "strip", "led", "motherboard", "gpu", "ram", "fan", "cooler"]
 
 [aura]
 # Advanced legacy backend. OpenRGB is the default path for broad laptop/desktop support.

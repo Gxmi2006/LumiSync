@@ -298,6 +298,8 @@ class OpenRgbController(RgbController):
     report_label = "OpenRGB"
     success_status = "connected"
 
+    PREFERRED_TYPE_KEYWORDS = ("keyboard", "mouse", "ledstrip", "motherboard", "dram", "gpu", "cooler")
+
     def __init__(self, rgb_config: RgbConfig, openrgb_config: OpenRgbConfig) -> None:
         super().__init__(rgb_config)
         self.openrgb_config = openrgb_config
@@ -459,8 +461,11 @@ class OpenRgbController(RgbController):
             return True
 
         device_type = getattr(device, "type", None)
-        type_text = str(device_type).lower()
-        return "keyboard" in type_text
+        # openrgb-python's DeviceType is an IntEnum, so str() gives "5" on newer Pythons; use .name.
+        type_text = str(getattr(device_type, "name", device_type)).lower()
+        # OpenRGB reports fan hubs (Corsair Commander, Lian Li Uni Hub, NZXT) as COOLER
+        # and ARGB fan headers live under MOTHERBOARD, so match those types as well.
+        return any(keyword in type_text for keyword in self.PREFERRED_TYPE_KEYWORDS)
 
     def _apply_color(self, color: RGB, region_colors: tuple[RGB, ...]) -> None:
         if self._rgb_color_class is None:

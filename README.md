@@ -13,6 +13,8 @@ LumiSync watches the colors in your games, movies, browser videos, anime, emulat
 
 It is built for people who want ambient RGB without a heavy vendor suite: transparent diagnostics, simple TOML config, smart single-color extraction, and safe software fallback when RGB hardware is unavailable.
 
+**If OpenRGB supports your device, LumiSync supports it.** Keyboards, mice, fans, fan hubs, motherboards, RAM, GPUs and LED strips all work the same way. Check the [OpenRGB supported devices list](https://openrgb.org/devices.html) for your hardware.
+
 ```text
 game / movie / browser / window
         -> capture a small region
@@ -28,7 +30,7 @@ game / movie / browser / window
 | RGB that follows games and videos | Captures the active window or a tuned region in real time |
 | Better colors than average sampling | Prioritizes glowing objects, vivid highlights, and pleasing scene palettes |
 | Elegant keyboard color | Sends one best cinematic scene color instead of flashy gradients |
-| Works across laptops and desktops | Uses OpenRGB as the default hardware path |
+| Works with your hardware | If OpenRGB supports it, LumiSync supports it: keyboards, mice, fans, motherboards, RAM, GPUs, LED strips and laptops |
 | No crashes when hardware is missing | Falls back to software mode while capture and overlays keep running |
 | Easy tuning | Uses `config.toml`, diagnostics, hotkeys, and debug overlays |
 
@@ -127,7 +129,7 @@ Public demo assets should be added under `assets/`.
 | Color engine | Saliency detection, focal region scoring, smart scene-harmony fallback, OpenCV/NumPy palette extraction |
 | Single-color output | One best cinematic scene color by default |
 | Smoothing | Low-flicker interpolation, update throttling, configurable FPS |
-| OpenRGB | SDK Server connection, reconnect handling, all-device fallback when no keyboard match exists |
+| OpenRGB | Any OpenRGB-supported device, including RGB fans and fan hubs. SDK Server connection, reconnect handling, all-device fallback when no keyboard match exists |
 | Desktop app | Tray icon, global hotkeys, debug overlay, startup shortcut support |
 | Reliability | Software fallback mode, structured diagnostics, rotating logs |
 | Packaging | PyInstaller build for a standalone Windows executable |
@@ -179,7 +181,7 @@ Palette modes:
 
 ## OpenRGB Setup
 
-OpenRGB is the default hardware backend. It works with many keyboards, mice, motherboards, RAM kits, LED strips, and laptop RGB devices supported by OpenRGB.
+OpenRGB is the default hardware backend, and LumiSync sends its color to every device OpenRGB can control. If a device shows up and changes color in OpenRGB, LumiSync can drive it, whether it is a keyboard, mouse, fan, fan hub, motherboard, RAM kit, GPU, LED strip or laptop. Look up your hardware on the [OpenRGB supported devices list](https://openrgb.org/devices.html).
 
 1. Install OpenRGB.
 2. Start OpenRGB.
@@ -208,6 +210,18 @@ Useful statuses:
 | `not found` | Python OpenRGB dependency is missing |
 
 By default, LumiSync prefers keyboard/laptop-like devices, then falls back to all OpenRGB devices so desktops and non-keyboard setups still work.
+
+### RGB Fans
+
+RGB fans work through OpenRGB, the same way as every other device.
+
+- **Fans on a motherboard ARGB header** show up under your motherboard in OpenRGB. In OpenRGB, select the ARGB header zone and use **Resize Zone** to set the LED count your fans have, or they may light up partly or not at all.
+- **Fans on a fan/RGB hub** (Corsair Commander, Lian Li Uni Hub, NZXT and similar) work if OpenRGB supports that hub. Check the [OpenRGB supported devices list](https://openrgb.org/devices.html).
+- Fans that only work with a remote or a hub that has no OpenRGB support can't be controlled.
+
+LumiSync picks up fans automatically: motherboard and cooler/hub devices are matched by their OpenRGB device type, and `fan` and `cooler` are in the default `device_name_contains` list. If your fans still stay dark, run `python -m lumisync --diagnostics` to see which devices were selected, then add part of the device's name to `device_name_contains` in `config.toml`, or set `prefer_keyboard_devices = false` to drive every OpenRGB device.
+
+Close iCUE, Armoury Crate, L-Connect, NZXT CAM and other vendor RGB apps while LumiSync runs, because they fight OpenRGB for control. All fans show one color by default; see the gradient options in [Configuration](#configuration) for multi-zone output.
 
 ## ASUS Aura Note
 
