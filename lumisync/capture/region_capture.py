@@ -3,10 +3,11 @@
 from dataclasses import dataclass
 import logging
 
-import mss
+import cv2
 import numpy as np
 
 from lumisync.core.config import CaptureConfig
+from lumisync.capture.mss_compat import create_mss
 from lumisync.capture.window_capture import Rect, WindowInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -52,12 +53,20 @@ def compute_region_from_rect(client: Rect, config: CaptureConfig) -> Rect | None
 
 class ScreenCapturer:
     def __init__(self) -> None:
-        self._mss = mss.mss()
+        self._mss = create_mss()
 
     def close(self) -> None:
         self._mss.close()
 
-    def grab(self, region: Rect) -> CaptureFrame | None:
+    def grab(self, region: Rect, downscale: tuple[int, int] | None = None) -> CaptureFrame | None:
+        """Capture a screen region as an RGB frame.
+
+        When ``downscale`` (width, height) is given, the frame is shrunk with
+        area interpolation straight from the BGRA capture buffer, so the
+        full-resolution RGB copy is never made. Every later stage works on a
+        small frame anyway.
+        """
+
         monitor = {
             "left": region.left,
             "top": region.top,
@@ -74,6 +83,13 @@ class ScreenCapturer:
         if bgra.ndim != 3 or bgra.shape[2] < 3:
             LOGGER.debug("Unexpected capture frame shape: %s", bgra.shape)
             return None
-        rgb = bgra[:, :, :3][:, :, ::-1].copy()
-        return CaptureFrame(rgb=rgb, region=region)
 
+        if downscale is not None:
+            width = max(16, int(downscale[0]))
+            height = max(16, int(downscale[1]))
+            if bgra.shape[1] != width or bgra.shape[0] != height:
+                bgra = cv2.resize(bgra, (width, height), interpolation=cv2.INTER_AREA)
+            rgb = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGB if bgra.shape[2] == 4 else cv2.COLOR_BGR2RGB)
+        else:
+            rgb = np.ascontiguousarray(bgra[:, :, 2::-1])
+        return CaptureFrame(rgb=rgb, region=region)

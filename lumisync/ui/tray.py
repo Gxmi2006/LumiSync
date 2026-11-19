@@ -3,6 +3,7 @@
 from collections.abc import Callable
 import logging
 from threading import Thread
+import time
 
 from PIL import Image, ImageDraw
 
@@ -26,6 +27,8 @@ class TrayIcon:
         self._icon = None
         self._thread: Thread | None = None
         self._last_color = RGB(0, 128, 255)
+        self._shown_color = self._last_color
+        self._last_icon_update = 0.0
 
     def start(self) -> None:
         try:
@@ -60,6 +63,13 @@ class TrayIcon:
     def update_color(self, color: RGB) -> None:
         self._last_color = color
         if self._icon is not None:
+            # Every icon swap is a shell notification, so skip tiny or rapid
+            # changes instead of repainting the tray at the capture frame rate.
+            now = time.monotonic()
+            if now - self._last_icon_update < 0.5 or color.distance(self._shown_color) < 8:
+                return
+            self._last_icon_update = now
+            self._shown_color = color
             try:
                 self._icon.icon = self._make_image(color)
             except Exception:

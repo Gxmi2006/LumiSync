@@ -61,6 +61,9 @@ class VisualPriorityEngine:
         self._previous_luma: np.ndarray | None = None
         self._previous_box: tuple[float, float, float, float] | None = None
         self._previous_color: RGB | None = None
+        # Debug payloads are only consumed by the overlay, so callers switch
+        # this off to skip building them every frame.
+        self.collect_debug = True
 
     def update_config(
         self,
@@ -145,10 +148,25 @@ class VisualPriorityEngine:
         min_area = max(4, int(frame_area * max(0.0, cfg.min_region_area_ratio)))
         max_area = max(min_area, int(frame_area * max(0.01, cfg.max_region_area_ratio)))
 
-        for label in range(1, count):
+        areas = stats[:, cv2.CC_STAT_AREA]
+        candidates = [
+            label for label in range(1, count) if min_area <= areas[label] <= max_area
+        ]
+        # Scoring a region is the expensive step, and only `max_regions` survive.
+        # On cluttered frames (film grain, busy game scenes) rank components by
+        # total saliency first and fully score only the strongest few.
+        score_limit = max(4, int(cfg.max_regions) * 3)
+        if len(candidates) > score_limit:
+            saliency_mass = np.bincount(
+                labels.ravel(),
+                weights=saliency_map.ravel(),
+                minlength=count,
+            )
+            candidates.sort(key=lambda label: saliency_mass[label], reverse=True)
+            candidates = candidates[:score_limit]
+
+        for label in candidates:
             x, y, width, height, area = stats[label]
-            if area < min_area or area > max_area:
-                continue
             padded = _pad_box((int(x), int(y), int(width), int(height)), w, h, cfg.region_padding_ratio)
             region_mask = labels[padded[1] : padded[1] + padded[3], padded[0] : padded[0] + padded[2]] == label
             region = self._score_region(
@@ -341,6 +359,8 @@ class VisualPriorityEngine:
         selected_box: tuple[float, float, float, float],
     ) -> VisualPriorityDebug | None:
         cfg = self.visual_priority
+        if not self.collect_debug:
+            return None
         if not (cfg.debug_regions or cfg.debug_saliency_map or cfg.debug_palette):
             return None
 

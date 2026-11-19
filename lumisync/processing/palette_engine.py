@@ -288,23 +288,34 @@ def _weighted_histogram_color(
     ).astype(np.int32)
 
     histogram = np.bincount(keys, weights=weights, minlength=bins**3)
-    if histogram.sum() <= 0:
+    total = float(histogram.sum())
+    if total <= 0:
         return RGB.from_iterable(np.average(rgb, axis=0)), 0.0, ()
 
-    top_keys = np.argsort(histogram)[-3:][::-1]
+    # Only the top three bins matter, so a partial selection is enough.
+    top_count = min(3, len(histogram))
+    candidates = np.argpartition(histogram, -top_count)[-top_count:]
+    top_keys = candidates[np.argsort(histogram[candidates])[::-1]]
     best_key = int(top_keys[0])
-    dominant_mask = keys == best_key
-    dominant_rgb = rgb[dominant_mask]
-    dominant_weights = weights[dominant_mask]
-    color = RGB.from_iterable(np.average(dominant_rgb, axis=0, weights=dominant_weights))
-    confidence = float(histogram[best_key] / max(0.001, histogram.sum()))
+    confidence = float(histogram[best_key] / max(0.001, total))
 
     palette: list[RGB] = []
+    color: RGB | None = None
     for key in top_keys:
         if histogram[int(key)] <= 0:
             continue
         key_mask = keys == int(key)
-        palette.append(RGB.from_iterable(np.average(rgb[key_mask], axis=0, weights=weights[key_mask])))
+        cluster_weights = weights[key_mask]
+        weight_sum = float(cluster_weights.sum())
+        if weight_sum <= 0:
+            continue
+        mean = (rgb[key_mask] * cluster_weights[:, None]).sum(axis=0) / weight_sum
+        entry = RGB.from_iterable(mean)
+        if color is None and int(key) == best_key:
+            color = entry
+        palette.append(entry)
+    if color is None:
+        color = RGB.from_iterable(np.average(rgb, axis=0))
     return color, confidence, tuple(palette)
 
 

@@ -11,12 +11,19 @@ All notable changes to LumiSync are documented here.
 - Config validation with safe clamping for risky runtime values.
 - Monitor and virtual-desktop region capture support in the runtime loop.
 - Regression tests for visual priority, config validation, smoothing, and backend selection helpers.
+- `[performance]` config section is now honored: `adaptive_fps` drops to `idle_fps` after 3 seconds of an unchanging color, and `max_fps` caps the loop.
 
 ### Improved
 
 - Visual Priority Engine now recognizes bright white and gray highlight rings, not only saturated colors.
 - Scene harmony scoring now penalizes broad dark backgrounds more strongly.
 - Setup and diagnostics commands avoid noisy console logging.
+- Screen capture is shrunk straight from the capture buffer, so the full-resolution RGB copy is no longer made each frame.
+- Region scoring ranks components by saliency first and fully scores only the strongest few, which cuts extraction time on busy frames by about a third.
+- Palette histogram selection uses a partial sort and direct weighted means instead of full sorts and `numpy.average`.
+- Debug-overlay payloads are only built while the overlay is enabled.
+- The tray icon repaints at most twice a second and only for visible color changes.
+- Uses `mss.MSS` when available to avoid the `mss.mss` deprecation warning on mss 10.
 
 ### Notes
 
