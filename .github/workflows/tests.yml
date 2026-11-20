@@ -23,7 +23,7 @@ jobs:
         shell: bash
     env:
       # Linux has no monitor on GitHub, so run desktop steps in a virtual X11 display.
-      DESKTOP: ${{ runner.os == 'Linux' && 'xvfb-run -a' || '' }}
+      DESKTOP: ${{ startsWith(matrix.os, 'ubuntu') && 'xvfb-run -a' || '' }}
     steps:
       - uses: actions/checkout@v5
 
