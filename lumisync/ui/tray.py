@@ -8,8 +8,32 @@ import time
 from PIL import Image, ImageDraw
 
 from lumisync.core.color import RGB
+from lumisync.utils.platform_info import IS_LINUX
 
 LOGGER = logging.getLogger(__name__)
+
+
+def linux_tray_available(pystray_module: object) -> bool:
+    """Whether the X11 desktop has a system tray for pystray's X11 backend.
+
+    The AppIndicator and GTK backends handle a missing tray themselves; the
+    plain X11 backend raises an error with a traceback instead, so check first.
+    """
+
+    if not pystray_module.Icon.__module__.endswith("_xorg"):
+        return True
+    try:
+        from Xlib import display
+
+        disp = display.Display()
+        try:
+            atom = disp.intern_atom(f"_NET_SYSTEM_TRAY_S{disp.get_default_screen()}")
+            owner = disp.get_selection_owner(atom)
+            return bool(getattr(owner, "id", owner))
+        finally:
+            disp.close()
+    except Exception:
+        return True
 
 
 class TrayIcon:
@@ -35,6 +59,12 @@ class TrayIcon:
             import pystray
         except Exception as exc:
             LOGGER.warning("Tray icon unavailable: %s", exc)
+            return
+        if IS_LINUX and not linux_tray_available(pystray):
+            LOGGER.warning(
+                "No system tray found, so the tray icon is hidden; hotkeys still work. "
+                "On GNOME, install the 'AppIndicator and KStatusNotifierItem Support' extension."
+            )
             return
 
         menu = pystray.Menu(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import time
 import unittest
+from unittest import mock
 
 from lumisync.backends.backend_manager import ControllerManager, _openrgb_status_from_exception
 from lumisync.core.color import RGB
@@ -22,9 +22,11 @@ class RuntimeHelperTests(unittest.TestCase):
 
     def test_smoothing_moves_toward_target(self) -> None:
         smoother = ColorSmoother(SmoothingConfig(strength=0.40, minimum_step=1))
-        self.assertEqual(smoother.update(RGB(0, 0, 0)), RGB(0, 0, 0))
-        time.sleep(0.01)
-        next_color = smoother.update(RGB(255, 100, 20))
+        # A fake clock 10 ms apart. Sleeping for real was flaky on Windows,
+        # whose clock only ticks about every 15 ms.
+        with mock.patch("lumisync.core.smoothing.time.monotonic", side_effect=[100.0, 100.01]):
+            self.assertEqual(smoother.update(RGB(0, 0, 0)), RGB(0, 0, 0))
+            next_color = smoother.update(RGB(255, 100, 20))
         self.assertGreater(next_color.r, 0)
         self.assertLess(next_color.r, 255)
         self.assertGreaterEqual(next_color.g, 1)

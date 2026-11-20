@@ -140,5 +140,34 @@ class LinuxPathsTests(unittest.TestCase):
             self.assertFalse(path.exists())
 
 
+
+class LinuxTrayTests(unittest.TestCase):
+    def test_tray_check_only_applies_to_the_plain_x11_backend(self) -> None:
+        from types import SimpleNamespace
+
+        from lumisync.ui.tray import linux_tray_available
+
+        appindicator = SimpleNamespace(Icon=type("Icon", (), {"__module__": "pystray._appindicator"}))
+        self.assertTrue(linux_tray_available(appindicator))
+
+    def test_missing_tray_hides_icon_without_error(self) -> None:
+        from types import SimpleNamespace
+
+        from lumisync.ui import tray
+
+        fake_pystray = SimpleNamespace(Icon=mock.Mock(side_effect=AssertionError("must not create an icon")))
+        manager = tray.TrayIcon.__new__(tray.TrayIcon)
+        manager._icon = None
+        manager._thread = None
+        with mock.patch.dict(sys.modules, {"pystray": fake_pystray}), mock.patch.object(
+            tray, "IS_LINUX", True
+        ), mock.patch.object(tray, "linux_tray_available", return_value=False), self.assertLogs(
+            "lumisync.ui.tray", "WARNING"
+        ) as logs:
+            manager.start()
+        self.assertIsNone(manager._icon)
+        self.assertIn("No system tray found", logs.output[0])
+
+
 if __name__ == "__main__":
     unittest.main()
