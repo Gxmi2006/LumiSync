@@ -1,5 +1,7 @@
 # Installs LumiSync from scratch the way a user who downloads the ZIP does,
 # then runs the tests and a short end-to-end run, on Windows and Linux.
+# When a step fails, the end of its output is published as an error
+# annotation, so the cause is visible on the run page.
 name: Tests
 
 on:
@@ -16,10 +18,16 @@ jobs:
         python: ["3.10", "3.12"]
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Linux has no monitor on GitHub, so run desktop steps in a virtual X11 display.
+      DESKTOP: ${{ runner.os == 'Linux' && 'xvfb-run -a' || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
@@ -33,25 +41,10 @@ jobs:
           pip install -r requirements.txt pytest
 
       - name: Setup check
-        if: runner.os == 'Windows'
-        run: python -m lumisync --setup-check
+        run: bash .github/run_step.sh "Setup check" $DESKTOP python -m lumisync --setup-check
 
-      - name: Tests (Windows)
-        if: runner.os == 'Windows'
-        run: python -m pytest -q
+      - name: Tests
+        run: bash .github/run_step.sh "Tests" $DESKTOP python -m pytest -q -rf --tb=short -p no:cacheprovider
 
-      - name: Smoke run (Windows)
-        if: runner.os == 'Windows'
-        run: python tests/smoke_run.py
-
-      - name: Setup check (Linux, virtual X11 display)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a python -m lumisync --setup-check
-
-      - name: Tests (Linux, virtual X11 display)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a python -m pytest -q
-
-      - name: Smoke run (Linux, virtual X11 display)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a python tests/smoke_run.py
+      - name: Smoke run
+        run: bash .github/run_step.sh "Smoke run" $DESKTOP python tests/smoke_run.py
