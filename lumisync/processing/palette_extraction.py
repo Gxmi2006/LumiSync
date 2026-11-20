@@ -42,6 +42,14 @@ class PaletteExtractor:
         self.visual_engine = VisualPriorityEngine(processing, visual_priority)
         self._previous_scene_color: RGB | None = None
 
+    @property
+    def collect_debug(self) -> bool:
+        return self.visual_engine.collect_debug
+
+    @collect_debug.setter
+    def collect_debug(self, value: bool) -> None:
+        self.visual_engine.collect_debug = bool(value)
+
     def update_config(
         self,
         processing: ProcessingConfig,
@@ -97,7 +105,7 @@ class PaletteExtractor:
                     confidence=harmony.confidence,
                     pixel_count=harmony.pixel_count,
                     region_colors=harmony.palette,
-                    visual_debug=self._scene_debug(harmony.palette),
+                    visual_debug=self._scene_debug(harmony.palette) if self.collect_debug else None,
                 )
 
         if self.gradient.enabled and self.gradient.regions > 1:

@@ -1,4 +1,4 @@
-﻿# LumiSync
+# LumiSync
 
 [![Windows 11](https://img.shields.io/badge/Windows-11-0A84FF?style=flat-square)](#requirements)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square)](#quick-start)
@@ -7,61 +7,67 @@
 [![License](https://img.shields.io/badge/License-MIT-111827?style=flat-square)](#license)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/gamindusasmitha)
 
-**Lightweight OpenRGB ambient lighting for Windows.**
+**Lightweight ambient RGB for Windows. It reads the colors on your screen and sends the best one to your OpenRGB devices.**
 
-LumiSync watches the colors in your games, movies, browser videos, anime, emulators, desktop windows, and monitors, then turns them into smooth OpenRGB lighting with cinematic color selection and low overhead.
-
-It is built for people who want ambient RGB without a heavy vendor suite: transparent diagnostics, simple TOML config, smart single-color extraction, and safe software fallback when RGB hardware is unavailable.
+LumiSync watches your games, movies, browser videos, anime, emulators, windows, and monitors, picks the color that actually matters in the scene, and fades your keyboard, strips, and case lighting to match. It is built for people who want ambient RGB without a heavy vendor suite.
 
 **If OpenRGB supports your device, LumiSync supports it.** Keyboards, mice, fans, fan hubs, motherboards, RAM, GPUs and LED strips all work the same way. Check the [OpenRGB supported devices list](https://openrgb.org/devices.html) for your hardware.
 
 ```text
 game / movie / browser / window
-        -> capture a small region
-        -> find focal objects or scene harmony colors
-        -> smooth and style the palette
-        -> send one best color to OpenRGB or software fallback
+        -> grab a small region, shrunk at capture time
+        -> find the focal object, or fall back to scene harmony
+        -> smooth the color and style the palette
+        -> send one best color to OpenRGB (or run in software fallback)
 ```
 
-## Why LumiSync
+## Highlights
 
-| What you want | How LumiSync helps |
+| | |
 | --- | --- |
-| RGB that follows games and videos | Captures the active window or a tuned region in real time |
-| Better colors than average sampling | Prioritizes glowing objects, vivid highlights, and pleasing scene palettes |
-| Elegant keyboard color | Sends one best cinematic scene color instead of flashy gradients |
-| Works with your hardware | If OpenRGB supports it, LumiSync supports it: keyboards, mice, fans, motherboards, RAM, GPUs, LED strips and laptops |
-| No crashes when hardware is missing | Falls back to software mode while capture and overlays keep running |
-| Easy tuning | Uses `config.toml`, diagnostics, hotkeys, and debug overlays |
+| **Picks the right color** | Finds glowing objects, neon rings, and bright highlights instead of averaging the whole frame into mud. |
+| **Calm by default** | One cinematic color, low-flicker smoothing, and update throttling. No flashy gradients unless you turn them on. |
+| **Light on your PC** | Frames are shrunk to 160x90 before analysis, regions are ranked before they are scored, and the loop slows down when the scene is static. |
+| **Works with your hardware** | If OpenRGB supports it, LumiSync supports it: keyboards, mice, fans, fan hubs, motherboards, RAM, GPUs, LED strips and laptops. Falls back to all devices if no keyboard matches. |
+| **Never crashes without hardware** | If OpenRGB is not running, capture and color analysis keep going in software fallback and reconnect later. |
+| **Easy to tune and debug** | Plain `config.toml`, a debug overlay, global hotkeys, tray icon, `--diagnostics`, and `--setup-check`. |
+
+## Optimized by design
+
+LumiSync is meant to sit in the background while you play or watch something, so each stage of the loop is kept cheap.
+
+| Optimization | What it does for you |
+| --- | --- |
+| Capture-time downscaling | The screen grab is shrunk straight from the capture buffer, so no full-resolution RGB copy is made each frame. |
+| Region pre-ranking | On busy or grainy frames, only the strongest few candidate regions are fully scored instead of every one. |
+| Cheap palette selection | Partial sorting and direct weighted means replace full sorts and generic averaging. |
+| Adaptive FPS | After 3 seconds of an unchanging color, the loop drops to `idle_fps`, then returns to full speed as soon as the scene moves. |
+| Update throttling | `minimum_update_interval_ms` and `minimum_color_delta` stop redundant writes to your RGB hardware. |
+| Debug work on demand | Overlay data is only built while the debug overlay is on. |
+| Quiet tray icon | The tray icon repaints at most twice a second, and only for visible color changes. |
+
+Measured on one test machine (1920x1200 display, Python 3.14), comparing the previous release with this one:
+
+| Stage | Before | After |
+| --- | ---: | ---: |
+| Color extraction on a busy, grainy frame | 22.5 ms | 15.5 ms |
+| Color extraction on a typical game-like frame | 7.3 ms | 6.4 ms |
+| Whole frame (capture, extraction, smoothing) | 36.1 ms | 34.1 ms |
+| Slowest frame observed | 47.9 ms | 39.3 ms |
+
+The Windows screen grab itself takes about 28 ms on that display and scales with the captured area. That is why the biggest wins for you are a smaller capture region, a sensible FPS, and adaptive FPS (see [Optimized usage](#optimized-usage)). Your numbers will vary with display size and hardware.
 
 ## Requirements
 
 - Windows 11
 - Python 3.10+ for source installs
-- OpenRGB for hardware output
-- OpenRGB SDK Server enabled
+- OpenRGB for hardware output, with the SDK Server enabled
 - Optional: PyInstaller for standalone executable builds
 
 ## Quick Start
 
-### 1. Install OpenRGB
-
-Download OpenRGB from [openrgb.org](https://openrgb.org/).
-
-**Important:** OpenRGB must have the SDK Server running.
-
-1. Open OpenRGB.
-2. Open the **SDK Server** tab.
-3. Click **Start Server**.
-4. Keep the default port unless you changed it:
-
-```toml
-[openrgb]
-address = "127.0.0.1"
-port = 6742
-```
-
-### 2. Install LumiSync
+1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
+2. Install LumiSync:
 
 ```powershell
 git clone https://github.com/Gxmi2006/LumiSync.git
@@ -78,89 +84,29 @@ If PowerShell blocks activation:
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### 3. Run
-
-```powershell
-python -m lumisync --config .\config.toml
-```
-
-To see what LumiSync detected:
-
-```powershell
-python -m lumisync --diagnostics
-```
-
-For first-time setup help, run:
+3. Check your setup, then run:
 
 ```powershell
 python -m lumisync --setup-check
+python -m lumisync --config .\config.toml
 ```
 
-`--setup-check` verifies Python dependencies, OpenRGB SDK Server, detected RGB devices, global hotkey support, and config safety. It prints exact fix steps when something is missing.
-
-Expected backend behavior:
+`--setup-check` verifies dependencies, the OpenRGB SDK Server, detected devices, hotkey support, and config safety, and prints exact fix steps. `--diagnostics` shows what LumiSync detected. You want to see:
 
 ```text
-Aura: disabled - Skipped because app.controller is 'openrgb'
 OpenRGB: connected - ready for hardware RGB updates
 Active backend: openrgb
 ```
 
-If OpenRGB is not running, LumiSync enters **software fallback**. That is safe: capture, smart color extraction, tray controls, hotkeys, and the debug overlay still work, but no hardware writes are sent.
-
-## Screenshots And GIFs
-
-Public demo assets should be added under `assets/`.
-
-| Asset | What it should show |
-| --- | --- |
-| `assets/demo-game.gif` | A game scene changing while OpenRGB keyboard colors follow smoothly |
-| `assets/demo-movie.gif` | Film/anime lighting with subtle cinematic transitions |
-| `assets/visual-priority.gif` | Neon object selected over a dark background |
-| `assets/scene-harmony.gif` | No single object, but LumiSync picks an elegant scene palette |
-| `assets/debug-overlay.png` | Capture rectangle, FPS, backend, focal boxes, palette swatches |
-| `assets/openrgb-setup.png` | OpenRGB SDK Server tab with Start Server enabled |
-
-## Features
-
-| Area | Capabilities |
-| --- | --- |
-| Capture | Active-window sync, process/title targeting, normalized region capture, monitor detection |
-| Color engine | Saliency detection, focal region scoring, smart scene-harmony fallback, OpenCV/NumPy palette extraction |
-| Single-color output | One best cinematic scene color by default |
-| Smoothing | Low-flicker interpolation, update throttling, configurable FPS |
-| OpenRGB | Any OpenRGB-supported device, including RGB fans and fan hubs. SDK Server connection, reconnect handling, all-device fallback when no keyboard match exists |
-| Desktop app | Tray icon, global hotkeys, debug overlay, startup shortcut support |
-| Reliability | Software fallback mode, structured diagnostics, rotating logs |
-| Packaging | PyInstaller build for a standalone Windows executable |
+If OpenRGB is not running, LumiSync enters **software fallback**: capture, color extraction, tray controls, hotkeys, and the overlay still work, but no hardware writes are sent.
 
 ## Smart Color Engine
 
 LumiSync does not just average the screen.
 
-### Focal Mode
+**Focal mode.** When a scene has an obvious subject, LumiSync prioritizes it: neon rings and glow, saturated foreground objects, white and gray highlight rings, cinematic highlights, high-contrast edges, centered subjects, and regions that stay stable over time. A dark scene with a glowing green ring outputs the ring color, not muddy dark blue.
 
-When a scene has an obvious visual subject, LumiSync prioritizes it:
-
-- neon rings and glow effects
-- saturated foreground objects
-- white and gray highlight rings
-- cinematic highlights
-- high-contrast edges
-- centered visual subjects
-- temporally stable regions
-
-Example: a dark scene with a green, purple, white, or gray glowing ring should output the ring color, not muddy dark blue.
-
-### Scene Harmony Mode
-
-When there is no single appealing object, LumiSync switches to scene harmony:
-
-- filters near-black, gray, and dull pixels
-- groups colors into stable HSV families
-- scores them by vividness, coverage, brightness, contrast, and elegance
-- chooses the best matching scene color instead of a raw average
-- returns a small palette for multi-zone output
+**Scene harmony mode.** When no single object wins, LumiSync filters near-black and dull pixels, groups colors into HSV families, scores them by vividness, coverage, brightness, contrast, and elegance, and picks the best scene color instead of a raw average.
 
 ```toml
 [palette]
@@ -171,13 +117,149 @@ palette_size = 1
 harmony_strength = 0.35
 ```
 
-Palette modes:
-
-| Mode | Result |
+| Palette mode | Result |
 | --- | --- |
 | `scene` | Uses colors sampled from the current frame |
-| `harmonic` | Generates elegant analogous colors around the selected hue |
-| `cinematic` | Default. Uses restrained lower-brightness palette styling |
+| `harmonic` | Generates analogous colors around the selected hue |
+| `cinematic` | Default. Restrained, lower-brightness styling |
+
+## Features
+
+| Area | Capabilities |
+| --- | --- |
+| Capture | Active-window sync, process/title targeting, normalized region capture, monitor detection |
+| Color engine | Saliency detection, focal region scoring, scene-harmony fallback, OpenCV/NumPy palette extraction |
+| Output | One best cinematic color by default, optional multi-zone gradients |
+| Smoothing | Low-flicker interpolation, update throttling, configurable and adaptive FPS |
+| OpenRGB | Any OpenRGB-supported device, including RGB fans and fan hubs. SDK Server connection, reconnect handling, all-device fallback |
+| Desktop app | Tray icon, global hotkeys, debug overlay, startup shortcut |
+| Reliability | Software fallback, structured diagnostics, rotating logs |
+| Packaging | PyInstaller build for a standalone Windows executable |
+
+## Optimized usage
+
+Pick the recipe that matches what you are doing and paste it into `config.toml`. Every key below already exists in the file.
+
+### The biggest levers
+
+1. **Capture less.** Screen grab time grows with the captured area. Sample only the video or game area with `[capture]` ratios, or sync one window instead of a whole monitor.
+2. **Lower the FPS.** Ambient light does not need 60 updates a second. 16-20 FPS looks smooth for video, 24-30 for games.
+3. **Keep adaptive FPS on.** Static scenes (menus, paused video, desktop) cost almost nothing.
+4. **Keep the analysis small.** The default 160x90 is enough. Going lower saves little and loses accuracy.
+5. **Let the hardware rest.** A higher `minimum_color_delta` means fewer writes to OpenRGB.
+
+### Recipe: everyday balanced
+
+```toml
+[app]
+fps = 20
+capture_mode = "active_window"
+
+[performance]
+adaptive_fps = true
+idle_fps = 5
+max_fps = 30
+
+[rgb]
+minimum_update_interval_ms = 16
+minimum_color_delta = 2.0
+```
+
+### Recipe: gaming (fast reactions)
+
+```toml
+[app]
+fps = 30
+capture_mode = "active_window"
+
+[smoothing]
+strength = 0.42
+
+[processing]
+brightness_multiplier = 0.92
+saturation_multiplier = 1.18
+black_threshold = 22
+
+[performance]
+max_fps = 30
+```
+
+### Recipe: movies and anime (smooth and cinematic)
+
+```toml
+[app]
+fps = 18
+capture_mode = "monitor"
+
+[smoothing]
+strength = 0.76
+
+[processing]
+black_threshold = 32
+
+[capture]
+# Skip letterbox and subtitle bars by sampling the middle of the frame.
+top_ratio = 0.10
+height_ratio = 0.80
+```
+
+### Recipe: battery laptop (lowest overhead)
+
+```toml
+[app]
+fps = 10
+
+[processing]
+downscale_width = 96
+downscale_height = 54
+
+[smoothing]
+strength = 0.70
+
+[rgb]
+minimum_update_interval_ms = 50
+minimum_color_delta = 4.0
+
+[performance]
+adaptive_fps = true
+idle_fps = 3
+```
+
+### Recipe: quiet hardware (fewer writes)
+
+```toml
+[rgb]
+minimum_update_interval_ms = 40
+minimum_color_delta = 5.0
+
+[smoothing]
+strength = 0.80
+```
+
+### Quick tuning cheat sheet
+
+| You want | Change |
+| --- | --- |
+| Lower CPU use | Lower `app.fps`, shrink the `[capture]` area, lower `performance.idle_fps` |
+| Smoother, less flicker | Raise `smoothing.strength` (0.72-0.84) and `rgb.minimum_color_delta` |
+| Faster reactions | Lower `smoothing.strength` (0.40-0.50) and raise `app.fps` |
+| Fewer RGB writes | Raise `rgb.minimum_update_interval_ms` and `rgb.minimum_color_delta` |
+| Never slow down | Set `performance.adaptive_fps = false` |
+| Cap the loop | Set `performance.max_fps` |
+
+`config.toml` also contains `[profiles.*]` blocks (default, gaming, movie, low_power_laptop, cinematic) with the same kind of value sets. Profile switching is not wired into the app yet, so copy the values you want into the main sections for now.
+
+### Performance settings reference
+
+| Key | Default | Meaning |
+| --- | ---: | --- |
+| `performance.adaptive_fps` | `true` | Drop to `idle_fps` after 3 seconds of an unchanging color |
+| `performance.idle_fps` | `5` | Loop rate while the scene is static (1-30) |
+| `performance.max_fps` | `30` | Upper limit for the loop (1-60), applied on top of `app.fps` |
+| `app.fps` | `20` | Target loop rate while the scene is changing |
+| `processing.downscale_width/height` | `160x90` | Analysis resolution |
+| `rgb.minimum_update_interval_ms` | `16` | Shortest gap between hardware writes |
+| `rgb.minimum_color_delta` | `2.0` | Smallest color change worth sending |
 
 ## OpenRGB Setup
 
@@ -322,37 +404,6 @@ python -m lumisync --test-color 22CCFF
 | `Ctrl+Alt+Q` | Quit |
 
 The `keyboard` package may require administrator privileges on some Windows systems.
-
-## Performance Tuning
-
-LumiSync is designed for 10-30 FPS ambient updates.
-
-| Use case | FPS | Suggested feel |
-| --- | ---: | --- |
-| Gaming | 24-30 | Responsive |
-| Movies/anime | 16-20 | Smooth and cinematic |
-| Battery laptop | 8-12 | Low overhead |
-| Debug tuning | 10-20 | Overlay-friendly |
-
-Key settings:
-
-```toml
-[app]
-fps = 20
-
-[processing]
-downscale_width = 160
-downscale_height = 90
-
-[smoothing]
-strength = 0.76
-
-[rgb]
-minimum_update_interval_ms = 16
-minimum_color_delta = 2.0
-```
-
-Lower FPS and downscale size reduce CPU usage. Higher smoothing reduces flicker. Higher color delta reduces hardware write frequency.
 
 ## Configuration
 

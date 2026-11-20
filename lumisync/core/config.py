@@ -230,6 +230,13 @@ class StartupConfig:
 
 
 @dataclass(slots=True)
+class PerformanceConfig:
+    adaptive_fps: bool = True
+    idle_fps: int = 5
+    max_fps: int = 30
+
+
+@dataclass(slots=True)
 class Config:
     app: AppConfig = field(default_factory=AppConfig)
     hotkeys: HotkeyConfig = field(default_factory=HotkeyConfig)
@@ -248,6 +255,7 @@ class Config:
     diagnostics: DiagnosticsConfig = field(default_factory=DiagnosticsConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     startup: StartupConfig = field(default_factory=StartupConfig)
+    performance: PerformanceConfig = field(default_factory=PerformanceConfig)
 
 
 T = TypeVar("T")
@@ -397,6 +405,8 @@ def validate_config(config: Config, fix: bool = False) -> list[ConfigIssue]:
     clamp_number(config.palette, "palette_size", "palette.palette_size", 1, 12, 1, integer=True)
     clamp_number(config.palette, "harmony_strength", "palette.harmony_strength", 0.0, 1.0, 0.35)
 
+    clamp_number(config.performance, "idle_fps", "performance.idle_fps", 1, 30, 5, integer=True)
+    clamp_number(config.performance, "max_fps", "performance.max_fps", 1, 60, 30, integer=True)
     clamp_number(config.gradient, "regions", "gradient.regions", 1, 12, 3, integer=True)
     choice(config.gradient, "mode", "gradient.mode", {"horizontal", "vertical"}, "horizontal")
 

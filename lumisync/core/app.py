@@ -37,6 +37,11 @@ class RuntimeState:
 
 
 class LumiSyncApp:
+    # Seconds of an unchanging color before adaptive FPS drops to idle_fps, and
+    # the color movement that counts as the scene changing again.
+    IDLE_AFTER_SECONDS = 3.0
+    ACTIVITY_COLOR_DELTA = 3.0
+
     def __init__(self, config_path: Path | None, debug_overlay_override: bool = False) -> None:
         self.config_path = config_path
         self.config, self.config_issues = load_config_with_issues(config_path)
@@ -44,6 +49,7 @@ class LumiSyncApp:
             self.config.app.debug_overlay = True
 
         self.state = RuntimeState()
+        self._last_activity = time.monotonic()
         self._stop = Event()
         self._reload = Event()
         self._lock = Lock()
@@ -119,7 +125,6 @@ class LumiSyncApp:
         LOGGER.info("Debug overlay %s", "enabled" if enabled else "disabled")
 
     def _loop(self) -> None:
-        frame_interval = 1.0 / max(1, min(60, int(self.config.app.fps)))
         last_frame_time = time.monotonic()
         fps_ema = 0.0
 
@@ -128,7 +133,6 @@ class LumiSyncApp:
             if self._reload.is_set():
                 self._reload.clear()
                 self._reload_config()
-                frame_interval = 1.0 / max(1, min(60, int(self.config.app.fps)))
 
             if self.state.paused:
                 self._set_status("paused")
@@ -145,14 +149,24 @@ class LumiSyncApp:
             self.state.fps = fps_ema
 
             elapsed = time.monotonic() - start
-            sleep_time = max(0.001, frame_interval - elapsed)
+            sleep_time = max(0.001, self._frame_interval() - elapsed)
             self._stop.wait(sleep_time)
+
+    def _frame_interval(self) -> float:
+        """Seconds per frame, slowing to ``idle_fps`` once the scene is static."""
+
+        perf = self.config.performance
+        fps = max(1, min(60, int(self.config.app.fps), int(perf.max_fps)))
+        if perf.adaptive_fps and time.monotonic() - self._last_activity > self.IDLE_AFTER_SECONDS:
+            fps = max(1, min(fps, int(perf.idle_fps)))
+        return 1.0 / fps
 
     def _process_frame(self) -> None:
         frame = self._capture_frame()
         if frame is None:
             return
 
+        self.extractor.collect_debug = self.overlay.enabled
         sample = self.extractor.extract(frame.rgb)
         if sample is None:
             self._set_status("no usable color pixels")
@@ -170,6 +184,8 @@ class LumiSyncApp:
             )
 
         updated = self.controllers.set_color(smoothed, region_colors)
+        if updated or smoothed.distance(self.state.last_color) >= self.ACTIVITY_COLOR_DELTA:
+            self._last_activity = time.monotonic()
         self.state.last_color = smoothed
         self.tray.update_color(smoothed)
         self._set_status("running" if updated else "running")
@@ -193,11 +209,19 @@ class LumiSyncApp:
             self._set_status("capture region invalid")
             return None
 
-        frame = self.capturer.grab(region)
+        frame = self.capturer.grab(region, self._capture_downscale())
         if frame is None:
             self._set_status("capture failed")
             return None
         return frame
+
+    def _capture_downscale(self) -> tuple[int, int] | None:
+        # Gradient mode splits the full frame into strips before shrinking each
+        # one, so it needs the original resolution.
+        if self.config.gradient.enabled and self.config.gradient.regions > 1:
+            return None
+        processing = self.config.processing
+        return processing.downscale_width, processing.downscale_height
 
     def _capture_monitor_or_region(self, mode: str) -> CaptureFrame | None:
         monitor = self._select_monitor(mode)
@@ -208,7 +232,7 @@ class LumiSyncApp:
         if region is None:
             self._set_status("monitor capture region invalid")
             return None
-        frame = self.capturer.grab(region)
+        frame = self.capturer.grab(region, self._capture_downscale())
         if frame is None:
             self._set_status("monitor capture failed")
             return None

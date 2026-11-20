@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 
-import mss
-
+from lumisync.capture.mss_compat import create_mss
 from lumisync.capture.window_capture import Rect
 
 LOGGER = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ def list_monitors() -> list[MonitorInfo]:
     MSS index 0 is the virtual desktop rectangle; physical displays start at 1.
     """
 
-    with mss.mss() as capture:
+    with create_mss() as capture:
         monitors = []
         for index, monitor in enumerate(capture.monitors):
             monitors.append(
