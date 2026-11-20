@@ -8,6 +8,7 @@ import sys
 
 from lumisync.backends.backend_manager import BackendStatusReport
 from lumisync.core.config import Config, ConfigIssue
+from lumisync.utils.platform_info import IS_LINUX, IS_WINDOWS, linux_session, platform_label
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +66,7 @@ class SetupCheckReport:
     def _checks(self) -> list[CheckItem]:
         checks = [
             self._python_check(),
+            *self._session_checks(),
             *self._dependency_checks(),
             self._openrgb_socket_check(),
             self._backend_check(),
@@ -92,18 +94,46 @@ class SetupCheckReport:
         )
 
     @staticmethod
+    def _session_checks() -> list[CheckItem]:
+        if not IS_LINUX:
+            return [CheckItem("System", IS_WINDOWS, platform_label(), "LumiSync supports Windows and Linux.")]
+        session = linux_session()
+        if session == "x11":
+            return [CheckItem("Desktop session", True, "X11: screen capture, active-window sync and hotkeys work")]
+        if session == "wayland":
+            return [
+                CheckItem(
+                    "Desktop session",
+                    False,
+                    "Wayland: apps cannot read the screen or see other windows, so colors will not follow the screen",
+                    "Log out, then pick the X11 or Xorg session on the login screen "
+                    "(for example 'Ubuntu on Xorg' or 'Plasma (X11)').",
+                )
+            ]
+        return [
+            CheckItem(
+                "Desktop session",
+                False,
+                "no graphical session found (DISPLAY is not set)",
+                "Run LumiSync from inside your desktop, not over SSH.",
+            )
+        ]
+
+    @staticmethod
     def _dependency_checks() -> list[CheckItem]:
         modules = {
             "cv2": "opencv-python",
-            "keyboard": "keyboard",
             "mss": "mss",
             "numpy": "numpy",
             "openrgb": "openrgb-python",
             "PIL": "pillow",
             "psutil": "psutil",
             "pystray": "pystray",
-            "win32gui": "pywin32",
         }
+        if IS_WINDOWS:
+            modules.update({"keyboard": "keyboard", "win32gui": "pywin32"})
+        elif IS_LINUX:
+            modules.update({"Xlib": "python-xlib"})
         checks: list[CheckItem] = []
         missing: list[str] = []
         for module, package in modules.items():
@@ -160,6 +190,21 @@ class SetupCheckReport:
 
     @staticmethod
     def _hotkey_check() -> CheckItem:
+        if IS_LINUX:
+            if linux_session() != "x11":
+                return CheckItem(
+                    "Global hotkeys",
+                    False,
+                    "only available in an X11 session",
+                    "Use the tray icon menu, or log in with an X11 (Xorg) session.",
+                )
+            ok = importlib.util.find_spec("Xlib") is not None
+            return CheckItem(
+                "Global hotkeys",
+                ok,
+                "X11 key grabs (no root needed)" if ok else "python-xlib is missing",
+                "Run `pip install -r requirements.txt`.",
+            )
         try:
             import keyboard  # noqa: F401
         except Exception as exc:

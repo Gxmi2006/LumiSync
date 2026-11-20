@@ -21,6 +21,7 @@ from lumisync.core.logging_setup import setup_logging
 from lumisync.core.smoothing import ColorSmoother
 from lumisync.diagnostics.diagnostics_report import DiagnosticsReport
 from lumisync.diagnostics.setup_check import SetupCheckReport
+from lumisync.utils.display import screen_pixels_per_cm
 from lumisync.utils.startup import install_startup_shortcut, reconcile_startup, uninstall_startup_shortcut
 from lumisync.ui.tray import TrayIcon
 from lumisync.capture.window_capture import WindowFinder
@@ -55,7 +56,11 @@ class LumiSyncApp:
         self._lock = Lock()
 
         self.window_finder = WindowFinder(self.config.window)
+        self._window_fallback_logged = False
         self.capturer = ScreenCapturer()
+        # Created after the capturer so the display density is read with the
+        # same DPI awareness that screen capture uses.
+        self.pixels_per_cm = screen_pixels_per_cm(self.config.visual_priority.pixels_per_cm)
         self.extractor = PaletteExtractor(
             self.config.processing,
             self.config.gradient,
@@ -167,6 +172,7 @@ class LumiSyncApp:
             return
 
         self.extractor.collect_debug = self.overlay.enabled
+        self.extractor.set_screen_scale(frame.region.width, self.pixels_per_cm)
         sample = self.extractor.extract(frame.rgb)
         if sample is None:
             self._set_status("no usable color pixels")
@@ -195,6 +201,11 @@ class LumiSyncApp:
         mode = self.config.app.capture_mode.lower()
         if mode in {"monitor", "region"}:
             return self._capture_monitor_or_region(mode)
+        if not self.window_finder.supported:
+            if not self._window_fallback_logged:
+                LOGGER.warning("Active-window sync unavailable: %s", self.window_finder.unavailable_reason)
+                self._window_fallback_logged = True
+            return self._capture_monitor_or_region("monitor")
 
         window = self.window_finder.get_window()
         if window is None:
@@ -274,6 +285,7 @@ class LumiSyncApp:
             new_config.palette,
         )
         self.smoother.update_config(new_config.smoothing)
+        self.pixels_per_cm = screen_pixels_per_cm(new_config.visual_priority.pixels_per_cm)
         self.controllers.update_config(new_config)
         self.audio.update_config(new_config.audio_pulse)
         self.hotkeys.update_config(new_config.hotkeys)
@@ -346,14 +358,17 @@ def run_from_args(args: argparse.Namespace) -> int:
 
     if args.install_startup:
         path = install_startup_shortcut(config, config_path)
-        print(f"Installed Startup shortcut: {path}")
+        print(f"LumiSync will now start when you log in: {path}")
         return 0
     if args.uninstall_startup:
         path = uninstall_startup_shortcut(config)
-        print(f"Removed Startup shortcut if present: {path}")
+        print(f"Removed the start-at-login entry if present: {path}")
         return 0
     if args.list_windows:
         finder = WindowFinder(config.window)
+        if not finder.supported:
+            print(f"Window listing is not available: {finder.unavailable_reason}")
+            return 0
         windows = finder.list_windows()
         if not windows:
             print("No matching windows found.")

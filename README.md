@@ -1,13 +1,14 @@
 # LumiSync
 
 [![Windows 11](https://img.shields.io/badge/Windows-11-0A84FF?style=flat-square)](#requirements)
+[![Linux](https://img.shields.io/badge/Linux-X11-FCC624?style=flat-square&logo=linux&logoColor=black)](#linux)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square)](#quick-start)
 [![OpenRGB](https://img.shields.io/badge/OpenRGB-SDK%20Server%20Required-22C55E?style=flat-square)](#openrgb-setup)
 [![PyInstaller](https://img.shields.io/badge/Build-PyInstaller-111827?style=flat-square)](#build)
 [![License](https://img.shields.io/badge/License-MIT-111827?style=flat-square)](#license)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/gamindusasmitha)
 
-**Lightweight ambient RGB for Windows. It reads the colors on your screen and sends the best one to your OpenRGB devices.**
+**Lightweight ambient RGB for Windows and Linux. It reads the colors on your screen and sends the best one to your OpenRGB devices.**
 
 LumiSync watches your games, movies, browser videos, anime, emulators, windows, and monitors, picks the color that actually matters in the scene, and fades your keyboard, strips, and case lighting to match. It is built for people who want ambient RGB without a heavy vendor suite.
 
@@ -26,10 +27,12 @@ game / movie / browser / window
 | | |
 | --- | --- |
 | **Picks the right color** | Finds glowing objects, neon rings, and bright highlights instead of averaging the whole frame into mud. |
+| **Ignores UI clutter** | Small icons, status dots, colored text and anything in the screen corners never set your lights. If nothing on screen is big enough to matter, you get the best color of the whole screen. |
 | **Calm by default** | One cinematic color, low-flicker smoothing, and update throttling. No flashy gradients unless you turn them on. |
 | **Light on your PC** | Frames are shrunk to 160x90 before analysis, regions are ranked before they are scored, and the loop slows down when the scene is static. |
 | **Works with your hardware** | If OpenRGB supports it, LumiSync supports it: keyboards, mice, fans, fan hubs, motherboards, RAM, GPUs, LED strips and laptops. Falls back to all devices if no keyboard matches. |
 | **Never crashes without hardware** | If OpenRGB is not running, capture and color analysis keep going in software fallback and reconnect later. |
+| **Windows and Linux** | Same app, same `config.toml`. `pip install -r requirements.txt` installs only what your system needs. |
 | **Easy to tune and debug** | Plain `config.toml`, a debug overlay, global hotkeys, tray icon, `--diagnostics`, and `--setup-check`. |
 
 ## Optimized by design
@@ -59,23 +62,26 @@ The Windows screen grab itself takes about 28 ms on that display and scales with
 
 ## Requirements
 
-- Windows 11
-- Python 3.10+ for source installs
+- Windows 10 or 11, or Linux with an X11 (Xorg) desktop session
+- Python 3.10 or newer
 - OpenRGB for hardware output, with the SDK Server enabled
 - Optional: PyInstaller for standalone executable builds
 
 ## Quick Start
 
 1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
-2. Install LumiSync:
+2. Get LumiSync: either `git clone https://github.com/Gxmi2006/LumiSync.git`, or click **Code > Download ZIP** on GitHub and extract it. Open a terminal in the `LumiSync` folder.
+3. Install and run it for your system.
+
+### Windows
 
 ```powershell
-git clone https://github.com/Gxmi2006/LumiSync.git
-cd LumiSync
-py -3.11 -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+python -m lumisync --setup-check
+python -m lumisync --config .\config.toml
 ```
 
 If PowerShell blocks activation:
@@ -84,14 +90,27 @@ If PowerShell blocks activation:
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-3. Check your setup, then run:
+### Linux
 
-```powershell
+Ubuntu, Debian, Mint and Pop!_OS (use your distro's package manager elsewhere):
+
+```bash
+sudo apt install python3-venv python3-tk
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 python -m lumisync --setup-check
-python -m lumisync --config .\config.toml
+python -m lumisync --config ./config.toml
 ```
 
-`--setup-check` verifies dependencies, the OpenRGB SDK Server, detected devices, hotkey support, and config safety, and prints exact fix steps. `--diagnostics` shows what LumiSync detected. You want to see:
+`python3-tk` is only needed for the debug overlay. Everything LumiSync installs on Linux is a ready-made package, so nothing has to compile.
+
+LumiSync needs an **X11 (Xorg) session** on Linux. On Wayland, the default on recent Ubuntu, Fedora and KDE, apps are not allowed to read the screen. Log out and pick the X11 session on the login screen (for example "Ubuntu on Xorg" or "Plasma (X11)"). `--setup-check` tells you which session you are in.
+
+### Check it worked
+
+`--setup-check` verifies your system, dependencies, the OpenRGB SDK Server, detected devices, hotkey support, and config safety, and prints exact fix steps. `--diagnostics` shows what LumiSync detected. You want to see:
 
 ```text
 OpenRGB: connected - ready for hardware RGB updates
@@ -105,6 +124,17 @@ If OpenRGB is not running, LumiSync enters **software fallback**: capture, color
 LumiSync does not just average the screen.
 
 **Focal mode.** When a scene has an obvious subject, LumiSync prioritizes it: neon rings and glow, saturated foreground objects, white and gray highlight rings, cinematic highlights, high-contrast edges, centered subjects, and regions that stay stable over time. A dark scene with a glowing green ring outputs the ring color, not muddy dark blue.
+
+**Small objects and corners are ignored.** A colored object counts only if it is at least 1 cm in radius on your real screen, or sits in the center of the screen. Objects in the corners never count. This keeps icons, status dots, taskbars, notification badges and colored text from turning your lights green or red while you work. Thin rings count at their full size, so a large neon ring still wins. LumiSync measures your screen to know how big 1 cm is.
+
+```toml
+[visual_priority]
+position_filter = true
+min_focal_radius_cm = 1.0   # smaller objects only count in the center
+center_area_ratio = 0.5     # the center is the middle half of the screen
+corner_ratio = 0.2          # corners: 20% of the width and height from each corner
+pixels_per_cm = 0.0         # 0 detects your screen size; set it if detection is wrong
+```
 
 **Scene harmony mode.** When no single object wins, LumiSync filters near-black and dull pixels, groups colors into HSV families, scores them by vividness, coverage, brightness, contrast, and elegance, and picks the best scene color instead of a raw average.
 
@@ -265,7 +295,7 @@ strength = 0.80
 
 OpenRGB is the default hardware backend, and LumiSync sends its color to every device OpenRGB can control. If a device shows up and changes color in OpenRGB, LumiSync can drive it, whether it is a keyboard, mouse, fan, fan hub, motherboard, RAM kit, GPU, LED strip or laptop. Look up your hardware on the [OpenRGB supported devices list](https://openrgb.org/devices.html).
 
-1. Install OpenRGB.
+1. Install OpenRGB. On Linux, also install its udev rules (OpenRGB shows a warning with a link if they are missing) so it can reach your devices without root.
 2. Start OpenRGB.
 3. Open **SDK Server**.
 4. Click **Start Server**.
@@ -403,7 +433,7 @@ python -m lumisync --test-color 22CCFF
 | `Ctrl+Alt+D` | Toggle debug overlay |
 | `Ctrl+Alt+Q` | Quit |
 
-The `keyboard` package may require administrator privileges on some Windows systems.
+On Windows, the `keyboard` package may require administrator privileges on some systems. On Linux, hotkeys work in X11 sessions without root; on Wayland, use the tray icon menu instead.
 
 ## Configuration
 
@@ -492,20 +522,38 @@ It checks dependencies, OpenRGB SDK Server, devices, hotkeys, and config values.
 Logs are written to:
 
 ```text
-%APPDATA%\LumiSync\logs\lumisync.log
+Windows: %APPDATA%\LumiSync\logs\lumisync.log
+Linux:   ~/.config/LumiSync/logs/lumisync.log
 ```
 
+### Linux
+
+| Problem | Fix |
+| --- | --- |
+| Lights stay dark or black, `--setup-check` says Wayland | Log out and choose the X11 (Xorg) session on the login screen. |
+| `ImportError: libGL.so.1` | `sudo apt install libgl1` (OpenCV needs it on minimal installs). |
+| Debug overlay does not open | `sudo apt install python3-tk` |
+| No tray icon on GNOME | Install the "AppIndicator and KStatusNotifierItem Support" extension. Hotkeys still work. |
+| OpenRGB finds no devices | Install OpenRGB's udev rules, then log out and back in. |
+| A small UI element still sets the color | Raise `min_focal_radius_cm`, or set `pixels_per_cm` if your screen size was detected wrong (the log prints it). |
+
 ## Build
+
+Windows:
 
 ```powershell
 .\build.ps1
 ```
 
-Output:
+Output: `dist\LumiSync\LumiSync.exe`
 
-```text
-dist\LumiSync\LumiSync.exe
+Linux:
+
+```bash
+sh build.sh
 ```
+
+Output: `dist/LumiSync/LumiSync`
 
 Run the packaged app:
 
@@ -550,7 +598,9 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - OpenRGB must expose the device before LumiSync can control it.
 - The packaged `LumiSync.exe` is windowed for background use; run source commands from PowerShell when you need visible diagnostics output.
 - Aura / Armoury Crate support is legacy opt-in and may report no devices on many ASUS laptops.
-- Windows capture is based on visible desktop pixels; protected video surfaces or minimized windows may not capture useful frames.
+- Capture is based on visible desktop pixels; protected video surfaces or minimized windows may not capture useful frames.
+- Linux needs an X11 session. Wayland blocks screen capture for normal apps, so LumiSync cannot follow the screen there yet.
+- Audio pulsing (`[audio_pulse]`) is Windows only.
 - Multi-color zone gradients are available in code but disabled by default to keep the default experience calm and single-color.
 
 ## Contributing

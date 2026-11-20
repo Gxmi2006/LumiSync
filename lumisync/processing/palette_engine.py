@@ -103,8 +103,12 @@ def extract_scene_harmony_palette(
     processing: ProcessingConfig,
     visual_priority: VisualPriorityConfig,
     palette_config: PaletteConfig,
+    exclude_mask: np.ndarray | None = None,
 ) -> PaletteResult | None:
     """Extract a pleasant scene color when no single focal object wins.
+
+    ``exclude_mask`` (analysis resolution) marks pixels to leave out, such as
+    small off-center objects the focal engine was told to ignore.
 
     This is intentionally still lightweight: it downsamples once, masks out
     near-black and low-color pixels, groups candidates by HSV family, then
@@ -128,6 +132,14 @@ def extract_scene_harmony_palette(
     color_mask = (val_u8 >= value_floor) & (sat_u8 >= saturation_floor)
     neutral_mask = _neutral_scene_mask(sat_u8, val_u8, processing)
     mask = color_mask | neutral_mask
+    if exclude_mask is not None:
+        if exclude_mask.shape != mask.shape:
+            exclude_mask = cv2.resize(
+                exclude_mask.astype(np.uint8),
+                (mask.shape[1], mask.shape[0]),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+        mask &= ~exclude_mask
 
     if int(mask.sum()) < processing.minimum_mask_pixels:
         saturation_floor = max(4, int(processing.saturation_threshold * 0.30))

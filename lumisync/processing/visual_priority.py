@@ -11,8 +11,19 @@ from lumisync.core.color import RGB
 from lumisync.core.config import ProcessingConfig, VisualPriorityConfig
 from lumisync.processing.palette_engine import PaletteResult, extract_weighted_palette
 from lumisync.processing.saliency import SaliencyDetector
+from lumisync.utils.display import STANDARD_PIXELS_PER_CM
 
 LOGGER = logging.getLogger(__name__)
+
+# Small colored pieces are treated as the scene itself (confetti, particles)
+# rather than UI clutter when there are at least this many of them and they
+# hold more than this share of the colored pixels.
+SCENE_TEXTURE_MIN_PIECES = 40
+SCENE_TEXTURE_COLOR_SHARE = 0.5
+# Colored objects for the position rule: chroma (0-255) at least this, grouped
+# into this many hue families.
+MIN_OBJECT_CHROMA = 40
+HUE_FAMILIES = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +75,20 @@ class VisualPriorityEngine:
         # Debug payloads are only consumed by the overlay, so callers switch
         # this off to skip building them every frame.
         self.collect_debug = True
+        # How the analysed frame maps to the real screen, so small objects can
+        # be judged by their physical size. The app sets these every frame.
+        self.screen_pixels_per_cm = STANDARD_PIXELS_PER_CM
+        self.source_width: int | None = None
+        self._input_width = 0
+        # Pixels of objects the position filter rejected in the last frame, at
+        # analysis resolution. The scene-color fallback skips them too.
+        self.excluded_mask: np.ndarray | None = None
+
+    def set_screen_scale(self, source_width: int | None, pixels_per_cm: float) -> None:
+        """Tell the engine how wide the captured area is on screen, in pixels."""
+
+        self.source_width = int(source_width) if source_width else None
+        self.screen_pixels_per_cm = float(pixels_per_cm) if pixels_per_cm > 0 else STANDARD_PIXELS_PER_CM
 
     def update_config(
         self,
@@ -78,11 +103,15 @@ class VisualPriorityEngine:
         if rgb_image.size == 0:
             return None
 
+        self._input_width = int(rgb_image.shape[1])
+        self.excluded_mask = None
         small = _resize(rgb_image, self.processing.downscale_width, self.processing.downscale_height)
         hsv = cv2.cvtColor(small, cv2.COLOR_RGB2HSV)
         gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
         saliency_map = self.saliency.compute(small)
         motion_map = self._motion_map(gray)
+        if self.visual_priority.position_filter:
+            self.excluded_mask = self._small_colored_objects(hsv)
         regions = self._extract_regions(small, hsv, gray, saliency_map, motion_map)
 
         if not regions:
@@ -149,8 +178,23 @@ class VisualPriorityEngine:
         max_area = max(min_area, int(frame_area * max(0.01, cfg.max_region_area_ratio)))
 
         areas = stats[:, cv2.CC_STAT_AREA]
+        allowed = np.ones(count, dtype=bool)
+        if cfg.position_filter and count > 1:
+            # The mask was dilated by one pixel on each side above, so take
+            # that back off before measuring how big each object really is.
+            allowed = _allowed_by_position(
+                stats,
+                w,
+                h,
+                self.min_focal_radius_px(w),
+                cfg.center_area_ratio,
+                cfg.corner_ratio,
+                growth=2,
+            )
         candidates = [
-            label for label in range(1, count) if min_area <= areas[label] <= max_area
+            label
+            for label in range(1, count)
+            if min_area <= areas[label] <= max_area and allowed[label]
         ]
         # Scoring a region is the expensive step, and only `max_regions` survive.
         # On cluttered frames (film grain, busy game scenes) rank components by
@@ -263,6 +307,63 @@ class VisualPriorityEngine:
             edge_density=edge_density,
             center_bias=center_bias,
         )
+
+    def _small_colored_objects(self, hsv: np.ndarray) -> np.ndarray | None:
+        """Mask of colored objects the position rule rejects.
+
+        This looks at every colored object, not only the salient ones, so tiny
+        icons (a taskbar, status dots, colored text) are caught even when the
+        focal engine never looked at them. Objects are found separately for
+        each hue family, so a green dot on a red background is its own object.
+        The scene-color fallback skips the rejected pixels.
+        """
+
+        cfg = self.visual_priority
+        h, w = hsv.shape[:2]
+        hue = hsv[:, :, 0]
+        value = hsv[:, :, 2]
+        # Chroma (how far from grey) rather than HSV saturation, because dark
+        # greys report high saturation while looking grey.
+        chroma = hsv[:, :, 1].astype(np.uint16) * value.astype(np.uint16) // 255
+        colored = (chroma >= MIN_OBJECT_CHROMA) & (value >= self.processing.black_threshold)
+        if not colored.any():
+            return None
+
+        min_radius = self.min_focal_radius_px(w)
+        hue_family = (hue.astype(np.int32) * HUE_FAMILIES) // 180
+        rejected_mask = np.zeros((h, w), dtype=bool)
+        rejected_pieces = 0
+        rejected_area = 0
+        total_area = int(colored.sum())
+        for family in np.unique(hue_family[colored]):
+            family_mask = (colored & (hue_family == family)).astype(np.uint8)
+            count, labels, stats, _centroids = cv2.connectedComponentsWithStats(family_mask, 8)
+            rejected = ~_allowed_by_position(stats, w, h, min_radius, cfg.center_area_ratio, cfg.corner_ratio)
+            rejected[0] = False  # background
+            if rejected.any():
+                rejected_mask |= rejected[labels]
+                rejected_pieces += int(rejected.sum())
+                rejected_area += int(stats[rejected, cv2.CC_STAT_AREA].sum())
+
+        if rejected_pieces == 0:
+            return None
+        # When the color on screen is mostly many small pieces (confetti,
+        # particles, foliage), those pieces are the scene, not UI clutter, so
+        # the scene color keeps them. They still never become the focal object.
+        # A handful of icons or status dots is still excluded.
+        many_pieces = rejected_pieces >= SCENE_TEXTURE_MIN_PIECES
+        mostly_pieces = rejected_area > total_area * SCENE_TEXTURE_COLOR_SHARE
+        if many_pieces and mostly_pieces:
+            return None
+        kernel = np.ones((3, 3), dtype=np.uint8)
+        return cv2.dilate(rejected_mask.astype(np.uint8), kernel, iterations=1).astype(bool)
+
+    def min_focal_radius_px(self, analysis_width: int) -> float:
+        """``min_focal_radius_cm`` converted to pixels of the analysed frame."""
+
+        source_width = self.source_width or self._input_width or analysis_width
+        scale = analysis_width / max(1, source_width)
+        return float(self.visual_priority.min_focal_radius_cm) * self.screen_pixels_per_cm * scale
 
     def _combine_regions(
         self,
@@ -422,6 +523,64 @@ def _neutral_highlight_score(
     neutral_score = min(1.0, max(0.0, (0.36 - saturation) / 0.36))
     structure_score = min(1.0, contrast * 2.1 + glow * 0.55 + edge_density * 0.45)
     return brightness_score * neutral_score * structure_score
+
+
+def focal_position_allowed(
+    bbox: tuple[int, int, int, int],
+    width: int,
+    height: int,
+    min_radius: float,
+    center_area_ratio: float,
+    corner_ratio: float,
+) -> bool:
+    """Whether an object may become the focal color, judged by where it is and its size.
+
+    Objects centred in a corner zone never count. Objects whose radius is
+    below ``min_radius`` only count inside the center area. The radius is half
+    the geometric mean of the box sides: a disc or a ring gets its real radius
+    (a thin ring still counts at full size), while a long thin bar or a line
+    of text counts as small.
+    """
+
+    stats = np.array([[bbox[0], bbox[1], bbox[2], bbox[3], 0]], dtype=np.int32)
+    return bool(_allowed_by_position(stats, width, height, min_radius, center_area_ratio, corner_ratio)[0])
+
+
+def _allowed_by_position(
+    stats: np.ndarray,
+    width: int,
+    height: int,
+    min_radius: float,
+    center_area_ratio: float,
+    corner_ratio: float,
+    growth: int = 0,
+) -> np.ndarray:
+    """``focal_position_allowed`` for every connected component at once.
+
+    ``growth`` is how many pixels a dilation added to each box side in total;
+    it is removed before the size is measured.
+    """
+
+    x = stats[:, cv2.CC_STAT_LEFT].astype(np.float64)
+    y = stats[:, cv2.CC_STAT_TOP].astype(np.float64)
+    box_w = stats[:, cv2.CC_STAT_WIDTH].astype(np.float64)
+    box_h = stats[:, cv2.CC_STAT_HEIGHT].astype(np.float64)
+    cx = (x + box_w * 0.5) / max(1, width)
+    cy = (y + box_h * 0.5) / max(1, height)
+
+    allowed = np.ones(len(stats), dtype=bool)
+    if corner_ratio > 0:
+        in_corner_column = (cx < corner_ratio) | (cx > 1.0 - corner_ratio)
+        in_corner_row = (cy < corner_ratio) | (cy > 1.0 - corner_ratio)
+        allowed &= ~(in_corner_column & in_corner_row)
+
+    half = center_area_ratio * 0.5
+    in_center = (np.abs(cx - 0.5) <= half) & (np.abs(cy - 0.5) <= half)
+    real_w = np.maximum(1.0, box_w - growth)
+    real_h = np.maximum(1.0, box_h - growth)
+    small = np.sqrt(real_w * real_h) * 0.5 < min_radius
+    allowed &= ~(small & ~in_center)
+    return allowed
 
 
 def _center_bias(bbox: tuple[int, int, int, int], width: int, height: int) -> float:

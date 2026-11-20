@@ -4,8 +4,10 @@ from dataclasses import dataclass
 import logging
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any
-import tkinter as tk
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import tkinter as tk
 
 from lumisync.core.color import RGB
 from lumisync.capture.window_capture import Rect
@@ -70,6 +72,10 @@ class DebugOverlay:
 
     def _run(self) -> None:
         try:
+            # Imported here because Linux installs often ship Python without
+            # tkinter (the python3-tk package); only the overlay needs it.
+            import tkinter as tk
+
             root = tk.Tk()
         except Exception as exc:
             LOGGER.warning("Debug overlay unavailable: %s", exc)

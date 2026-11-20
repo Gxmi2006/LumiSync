@@ -50,6 +50,9 @@ class PaletteExtractor:
     def collect_debug(self, value: bool) -> None:
         self.visual_engine.collect_debug = bool(value)
 
+    def set_screen_scale(self, source_width: int | None, pixels_per_cm: float) -> None:
+        self.visual_engine.set_screen_scale(source_width, pixels_per_cm)
+
     def update_config(
         self,
         processing: ProcessingConfig,
@@ -92,11 +95,13 @@ class PaletteExtractor:
                 LOGGER.debug("Visual priority extraction produced no result; falling back")
 
         if self.palette.fallback_mode.lower() == "scene_harmony":
+            exclude = self.visual_engine.excluded_mask if self.visual_priority.enabled else None
             harmony = extract_scene_harmony_palette(
                 rgb_image,
                 self.processing,
                 self.visual_priority,
                 self.palette,
+                exclude_mask=exclude,
             )
             if harmony is not None:
                 harmony = self._stabilize_scene_result(harmony)

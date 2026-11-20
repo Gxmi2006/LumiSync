@@ -91,6 +91,15 @@ kmeans_clusters = 3
 debug_regions = true
 debug_saliency_map = true
 debug_palette = true
+# Small UI details (icons, status dots, colored text) should not set the lights.
+# Objects smaller than min_focal_radius_cm only count inside the center area,
+# and objects in the corners never count. When nothing qualifies, LumiSync uses
+# the best color of the whole screen instead.
+position_filter = true
+min_focal_radius_cm = 1.0           # real size on your screen
+center_area_ratio = 0.5             # middle 50% of the width and height
+corner_ratio = 0.2                  # corner zones are 20% of the width and height
+pixels_per_cm = 0.0                 # 0 = detect from your display
 
 [smoothing]
 strength = 0.76
