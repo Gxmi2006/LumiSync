@@ -21,9 +21,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      # Linux has no monitor on GitHub, so run desktop steps in a virtual X11 display.
-      DESKTOP: ${{ startsWith(matrix.os, 'ubuntu') && 'xvfb-run -a' || '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -35,16 +32,27 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1
 
+      # Linux runners have no monitor, so start one virtual X11 display for
+      # every step. -noreset stops it resetting when the last app disconnects,
+      # which a real desktop never does because the window manager stays
+      # connected.
+      - name: Start virtual X11 display
+        if: runner.os == 'Linux'
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 -noreset >/tmp/xvfb.log 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          sleep 2
+
       - name: Install LumiSync like a user would
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pytest
 
       - name: Setup check
-        run: bash .github/run_step.sh "Setup check" $DESKTOP python -m lumisync --setup-check
+        run: bash .github/run_step.sh "Setup check" python -m lumisync --setup-check
 
       - name: Tests
-        run: bash .github/run_step.sh "Tests" $DESKTOP python -m pytest -q -rf --tb=short -p no:cacheprovider
+        run: bash .github/run_step.sh "Tests" python -m pytest -q -rf --tb=short -p no:cacheprovider
 
       - name: Smoke run
-        run: bash .github/run_step.sh "Smoke run" $DESKTOP python tests/smoke_run.py
+        run: bash .github/run_step.sh "Smoke run" python tests/smoke_run.py
