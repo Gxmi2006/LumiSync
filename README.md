@@ -142,12 +142,12 @@ LumiSync does not just average the screen.
 
 **Focal mode.** When a scene has an obvious subject, LumiSync prioritizes it: neon rings and glow, saturated foreground objects, white and gray highlight rings, cinematic highlights, high-contrast edges, centered subjects, and regions that stay stable over time. A dark scene with a glowing green ring outputs the ring color, not muddy dark blue.
 
-**Small objects and corners are ignored.** A colored object counts only if it is at least 0.5 cm in radius on your real screen, or sits in the center of the screen. Objects in the corners never count. This keeps icons, status dots, taskbars, notification badges and colored text from turning your lights green or red while you work. Thin rings count at their full size, so a large neon ring still wins. LumiSync measures your screen to know how big 0.5 cm is.
+**Small objects and corners are ignored.** A colored object counts only if it is at least 1 cm in radius on your real screen, or sits in the center of the screen. Objects in the corners never count. This keeps icons, status dots, taskbars, notification badges and colored text from turning your lights green or red while you work. Thin rings count at their full size, so a large neon ring still wins. LumiSync measures your screen to know how big 1 cm is.
 
 ```toml
 [visual_priority]
 position_filter = true
-min_focal_radius_cm = 0.5   # smaller objects only count in the center
+min_focal_radius_cm = 1.0   # smaller objects only count in the center
 center_area_ratio = 0.5     # the center is the middle half of the screen
 corner_ratio = 0.2          # corners: 20% of the width and height from each corner
 pixels_per_cm = 0.0         # 0 detects your screen size; set it if detection is wrong
