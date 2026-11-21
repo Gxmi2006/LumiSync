@@ -34,7 +34,8 @@ def startup_entry_path(config: Config) -> Path:
 
 
 def _launch_args(config_path: Path | None) -> list[str]:
-    args = ["-m", "lumisync"]
+    # The packaged LumiSync.exe is the app itself, so it takes no "-m lumisync".
+    args: list[str] = [] if getattr(sys, "frozen", False) else ["-m", "lumisync"]
     if config_path is not None:
         args.extend(["--config", str(Path(config_path).resolve())])
     return args

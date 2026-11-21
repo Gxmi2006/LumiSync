@@ -67,7 +67,24 @@ The Windows screen grab itself takes about 28 ms on that display and scales with
 - OpenRGB for hardware output, with the SDK Server enabled
 - Optional: PyInstaller for standalone executable builds
 
-## Quick Start
+## Windows app (no Python needed)
+
+The quickest way on Windows is the packaged app.
+
+1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
+2. Download **LumiSync-Windows.zip** from the [latest release](https://github.com/Gxmi2006/LumiSync/releases/latest).
+3. Right-click the zip, choose **Extract All**, and keep the whole `LumiSync` folder together. `LumiSync.exe` needs the `_internal` folder next to it.
+4. Double-click `LumiSync.exe`. The lights start following your screen, and an icon appears in the tray.
+
+Windows may say **"Windows protected your PC"** because the app is not signed with a paid certificate. Click **More info**, then **Run anyway**. You only need to do this once.
+
+Settings are in `config.toml`, which sits next to `LumiSync.exe`. Edit it, then press `Ctrl+Alt+R` to reload. Press `Ctrl+Alt+Q` to quit, or use the tray icon.
+
+To build the app yourself, see [Build](#build).
+
+## Manual method (run from source)
+
+Use this if you want to run LumiSync from the Python source, on Windows or Linux, or to change the code.
 
 1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
 2. Get LumiSync: either `git clone https://github.com/Gxmi2006/LumiSync.git`, or click **Code > Download ZIP** on GitHub and extract it. Open a terminal in the `LumiSync` folder.
