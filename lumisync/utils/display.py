@@ -1,7 +1,7 @@
 """Physical screen size helpers.
 
 LumiSync ignores small focal objects by their real size on the screen
-(for example "smaller than 1 cm"), so it needs to know how many screen
+(for example "smaller than 0.5 cm"), so it needs to know how many screen
 pixels make a centimetre. Displays report their physical size in
 millimetres; when that report is missing or nonsense, we assume a standard
 96 DPI screen.

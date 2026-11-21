@@ -8,7 +8,7 @@ All notable changes to LumiSync are documented here.
 
 - Linux support (X11): active-window tracking through python-xlib, global hotkeys through X11 key grabs (no root needed), start at login through `~/.config/autostart`, config and logs in `~/.config/LumiSync`, and a `build.sh` for a standalone Linux build. On Wayland, LumiSync falls back to monitor capture and `--setup-check` explains how to switch to an X11 session.
 - `requirements.txt` and `pyproject.toml` install only what each system needs, so a downloaded ZIP installs cleanly on Windows and Linux.
-- Small objects and corners no longer set the lights: colored objects under `min_focal_radius_cm` (1 cm on your real screen) only count in the center area, objects in the corners never count, and both are left out of the whole-screen color too. Screen size is detected automatically, with a `pixels_per_cm` override.
+- Small objects and corners no longer set the lights: colored objects under `min_focal_radius_cm` (0.5 cm on your real screen) only count in the center area, objects in the corners never count, and both are left out of the whole-screen color too. Screen size is detected automatically, with a `pixels_per_cm` override.
 - GitHub Actions check that installs LumiSync from scratch and runs the tests on Ubuntu (with a virtual X11 display) and Windows.
 - `--setup-check` command for first-time setup validation and human-friendly fix steps.
 - Diagnostics now include OpenRGB device names, fallback state, selected capture target, capture region, and suggestions.

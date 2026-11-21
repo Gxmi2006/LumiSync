@@ -50,13 +50,13 @@ class FocalPositionFilterTests(unittest.TestCase):
 
     def test_small_off_center_object_is_ignored(self) -> None:
         frame = ui_frame()
-        cv2.circle(frame, (330, 560), 40, GREEN, -1)  # 0.7 cm radius, left side
+        cv2.circle(frame, (330, 560), 20, GREEN, -1)  # 0.36 cm radius, left side
         self.assertTrue(is_greenish(picked_color(frame, position_filter=False)))
         self.assertFalse(is_greenish(picked_color(frame)))
 
     def test_small_object_in_center_still_counts(self) -> None:
         frame = ui_frame()
-        cv2.circle(frame, (960, 540), 40, GREEN, -1)
+        cv2.circle(frame, (960, 540), 20, GREEN, -1)
         self.assertTrue(is_greenish(picked_color(frame)))
 
     def test_large_off_center_object_still_counts(self) -> None:
@@ -80,14 +80,14 @@ class FocalPositionFilterTests(unittest.TestCase):
         frame = ui_frame()
         colors = [GREEN, (255, 80, 60), (60, 120, 255), (255, 200, 40), (200, 60, 255), (40, 220, 220)]
         for index, color in enumerate(colors):
-            cv2.circle(frame, (700 + index * 90, 1050), 25, color, -1)  # like a taskbar
+            cv2.circle(frame, (700 + index * 90, 1050), 18, color, -1)  # like a taskbar
         color = picked_color(frame)
         self.assertIsNotNone(color)
         self.assertLess(max(color.to_tuple()) - min(color.to_tuple()), 25, f"expected a grey, got {color}")
 
     def test_small_object_on_colored_scene_gives_scene_color(self) -> None:
         frame = (ui_frame() * 0.4 + np.array([150, 40, 40]) * 0.6).astype(np.uint8)
-        cv2.circle(frame, (330, 560), 40, GREEN, -1)
+        cv2.circle(frame, (330, 560), 20, GREEN, -1)
         color = picked_color(frame)
         self.assertIsNotNone(color)
         self.assertGreater(color.r, color.g + 30)
@@ -120,9 +120,9 @@ class FocalPositionRuleTests(unittest.TestCase):
         config = Config()
         extractor = PaletteExtractor(config.processing, config.gradient, config.visual_priority, config.palette)
         extractor.set_screen_scale(1920, 56.0)
-        self.assertAlmostEqual(extractor.visual_engine.min_focal_radius_px(160), 56.0 * 160 / 1920)
+        self.assertAlmostEqual(extractor.visual_engine.min_focal_radius_px(160), 0.5 * 56.0 * 160 / 1920)
         extractor.set_screen_scale(960, 56.0)  # a smaller window: each analysis pixel is less screen
-        self.assertAlmostEqual(extractor.visual_engine.min_focal_radius_px(160), 56.0 * 160 / 960)
+        self.assertAlmostEqual(extractor.visual_engine.min_focal_radius_px(160), 0.5 * 56.0 * 160 / 960)
 
     def test_settings_are_validated(self) -> None:
         config = Config()

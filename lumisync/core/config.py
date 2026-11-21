@@ -127,7 +127,7 @@ class VisualPriorityConfig:
     # inside the center area, and objects in the corners never count. When no
     # object qualifies, LumiSync uses the best color of the whole screen.
     position_filter: bool = True
-    min_focal_radius_cm: float = 1.0
+    min_focal_radius_cm: float = 0.5
     center_area_ratio: float = 0.5
     corner_ratio: float = 0.2
     pixels_per_cm: float = 0.0  # 0 detects it from the display
@@ -391,7 +391,7 @@ def validate_config(config: Config, fix: bool = False) -> list[ConfigIssue]:
     clamp_number(config.visual_priority, "saliency_threshold", "visual_priority.saliency_threshold", 0.0, 0.95, 0.34)
     clamp_number(config.visual_priority, "min_region_area_ratio", "visual_priority.min_region_area_ratio", 0.0001, 0.50, 0.0025)
     clamp_number(config.visual_priority, "max_region_area_ratio", "visual_priority.max_region_area_ratio", 0.01, 0.95, 0.55)
-    clamp_number(config.visual_priority, "min_focal_radius_cm", "visual_priority.min_focal_radius_cm", 0.0, 20.0, 1.0)
+    clamp_number(config.visual_priority, "min_focal_radius_cm", "visual_priority.min_focal_radius_cm", 0.0, 20.0, 0.5)
     clamp_number(config.visual_priority, "center_area_ratio", "visual_priority.center_area_ratio", 0.05, 1.0, 0.5)
     clamp_number(config.visual_priority, "corner_ratio", "visual_priority.corner_ratio", 0.0, 0.45, 0.2)
     clamp_number(config.visual_priority, "pixels_per_cm", "visual_priority.pixels_per_cm", 0.0, 250.0, 0.0)
