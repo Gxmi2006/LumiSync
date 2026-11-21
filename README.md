@@ -64,14 +64,14 @@ The Windows screen grab itself takes about 28 ms on that display and scales with
 
 - Windows 10 or 11, or Linux with an X11 (Xorg) desktop session
 - Python 3.10 or newer
-- OpenRGB for hardware output (LumiSync starts its SDK server when it isn't running)
+- OpenRGB for hardware output, with its SDK Server started (LumiSync starts it for you if you forget)
 - Optional: PyInstaller for standalone executable builds
 
 ## Windows app (no Python needed)
 
 The quickest way on Windows is the packaged app.
 
-1. Install [OpenRGB](https://openrgb.org/). You don't have to start anything in it: LumiSync starts OpenRGB's server for you when it isn't running.
+1. Install [OpenRGB](https://openrgb.org/), open its **SDK Server** tab, and click **Start Server** (default port 6742). If you forget, LumiSync starts OpenRGB's server for you.
 2. [Download LumiSync-Windows.zip](https://github.com/Gxmi2006/LumiSync/releases/latest/download/LumiSync-Windows.zip).
 3. Right-click the zip, choose **Extract All**, and pick a folder such as `C:\LumiSync`. Inside it you should see `LumiSync.exe`, `config.toml` and an `_internal` folder, all together. Do not move `LumiSync.exe` out of that folder.
 4. Double-click `LumiSync.exe`. The lights start following your screen, and an icon appears in the tray.
@@ -86,7 +86,7 @@ To build the app yourself, see [Build](#build).
 
 Use this if you want to run LumiSync from the Python source, on Windows or Linux, or to change the code.
 
-1. Install [OpenRGB](https://openrgb.org/). You don't have to start anything in it: LumiSync starts OpenRGB's server for you when it isn't running.
+1. Install [OpenRGB](https://openrgb.org/), open its **SDK Server** tab, and click **Start Server** (default port 6742). If you forget, LumiSync starts OpenRGB's server for you.
 2. Get LumiSync: either `git clone https://github.com/Gxmi2006/LumiSync.git`, or click **Code > Download ZIP** on GitHub and extract it. Open a terminal in the `LumiSync` folder.
 3. Install and run it for your system.
 
@@ -315,8 +315,9 @@ OpenRGB is the default hardware backend, and LumiSync sends its color to every d
 LumiSync talks to OpenRGB through OpenRGB's **SDK Server**. LumiSync is the client, so you never need OpenRGB's SDK Client tab.
 
 1. Install OpenRGB. On Linux, also install its udev rules (OpenRGB shows a warning with a link if they are missing) so it can reach your devices without root.
-2. Start LumiSync. If nothing is serving on port 6742, LumiSync starts OpenRGB minimized to the tray with its server on. If OpenRGB is already open with its server off, LumiSync does not start a second copy; it tells you to open the **SDK Server** tab and click **Start Server**.
-3. If something goes wrong, the LumiSync tray icon shows a notification with the fix, and its tooltip always shows whether your lights are connected.
+2. In OpenRGB, open the **SDK Server** tab and click **Start Server**.
+3. Start LumiSync. If you forgot step 2 and nothing is serving on port 6742, LumiSync starts OpenRGB minimized to the tray with its server on. If OpenRGB is already open with its server off, LumiSync does not start a second copy; it tells you to open the **SDK Server** tab and click **Start Server**.
+4. If something goes wrong, the LumiSync tray icon shows a notification with the fix, and its tooltip always shows whether your lights are connected.
 
 **Tip for Windows:** when installing OpenRGB, choose the **Windows service** option. The server then starts with Windows, before you log in, and OpenRGB's own window shows "Offline" in its SDK Server tab because the service runs the server instead. That is normal.
 
