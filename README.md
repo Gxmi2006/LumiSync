@@ -72,7 +72,7 @@ The Windows screen grab itself takes about 28 ms on that display and scales with
 The quickest way on Windows is the packaged app.
 
 1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
-2. Download **LumiSync-Windows.zip** from the [latest release](https://github.com/Gxmi2006/LumiSync/releases/latest).
+2. [Download LumiSync-Windows.zip](https://github.com/Gxmi2006/LumiSync/releases/latest/download/LumiSync-Windows.zip).
 3. Right-click the zip, choose **Extract All**, and pick a folder such as `C:\LumiSync`. Inside it you should see `LumiSync.exe`, `config.toml` and an `_internal` folder, all together. Do not move `LumiSync.exe` out of that folder.
 4. Double-click `LumiSync.exe`. The lights start following your screen, and an icon appears in the tray.
 
