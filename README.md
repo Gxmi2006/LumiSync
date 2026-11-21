@@ -64,14 +64,14 @@ The Windows screen grab itself takes about 28 ms on that display and scales with
 
 - Windows 10 or 11, or Linux with an X11 (Xorg) desktop session
 - Python 3.10 or newer
-- OpenRGB for hardware output, with the SDK Server enabled
+- OpenRGB for hardware output (LumiSync starts its SDK server when it isn't running)
 - Optional: PyInstaller for standalone executable builds
 
 ## Windows app (no Python needed)
 
 The quickest way on Windows is the packaged app.
 
-1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
+1. Install [OpenRGB](https://openrgb.org/). You don't have to start anything in it: LumiSync starts OpenRGB's server for you when it isn't running.
 2. [Download LumiSync-Windows.zip](https://github.com/Gxmi2006/LumiSync/releases/latest/download/LumiSync-Windows.zip).
 3. Right-click the zip, choose **Extract All**, and pick a folder such as `C:\LumiSync`. Inside it you should see `LumiSync.exe`, `config.toml` and an `_internal` folder, all together. Do not move `LumiSync.exe` out of that folder.
 4. Double-click `LumiSync.exe`. The lights start following your screen, and an icon appears in the tray.
@@ -86,7 +86,7 @@ To build the app yourself, see [Build](#build).
 
 Use this if you want to run LumiSync from the Python source, on Windows or Linux, or to change the code.
 
-1. Install [OpenRGB](https://openrgb.org/), open the **SDK Server** tab, and click **Start Server** (default port 6742).
+1. Install [OpenRGB](https://openrgb.org/). You don't have to start anything in it: LumiSync starts OpenRGB's server for you when it isn't running.
 2. Get LumiSync: either `git clone https://github.com/Gxmi2006/LumiSync.git`, or click **Code > Download ZIP** on GitHub and extract it. Open a terminal in the `LumiSync` folder.
 3. Install and run it for your system.
 
@@ -312,11 +312,23 @@ strength = 0.80
 
 OpenRGB is the default hardware backend, and LumiSync sends its color to every device OpenRGB can control. If a device shows up and changes color in OpenRGB, LumiSync can drive it, whether it is a keyboard, mouse, fan, fan hub, motherboard, RAM kit, GPU, LED strip or laptop. Look up your hardware on the [OpenRGB supported devices list](https://openrgb.org/devices.html).
 
+LumiSync talks to OpenRGB through OpenRGB's **SDK Server**. LumiSync is the client, so you never need OpenRGB's SDK Client tab.
+
 1. Install OpenRGB. On Linux, also install its udev rules (OpenRGB shows a warning with a link if they are missing) so it can reach your devices without root.
-2. Start OpenRGB.
-3. Open **SDK Server**.
-4. Click **Start Server**.
-5. Run:
+2. Start LumiSync. If nothing is serving on port 6742, LumiSync starts OpenRGB minimized to the tray with its server on. If OpenRGB is already open with its server off, LumiSync does not start a second copy; it tells you to open the **SDK Server** tab and click **Start Server**.
+3. If something goes wrong, the LumiSync tray icon shows a notification with the fix, and its tooltip always shows whether your lights are connected.
+
+**Tip for Windows:** when installing OpenRGB, choose the **Windows service** option. The server then starts with Windows, before you log in, and OpenRGB's own window shows "Offline" in its SDK Server tab because the service runs the server instead. That is normal.
+
+To turn the automatic start off, or to point LumiSync at an OpenRGB in an unusual folder:
+
+```toml
+[openrgb]
+auto_start = true
+executable_path = ""   # for example "D:/Apps/OpenRGB/OpenRGB.exe"
+```
+
+To check what LumiSync sees, run:
 
 ```powershell
 python -m lumisync --diagnostics
@@ -335,6 +347,10 @@ Useful statuses:
 | `connected` | LumiSync can send colors through OpenRGB |
 | `not running` | OpenRGB SDK Server is not listening |
 | `timeout` | SDK Server did not respond fast enough |
+| `server off` | OpenRGB is open, but its SDK Server is off. Click **Start Server** in its SDK Server tab |
+| `starting` | LumiSync started OpenRGB and is waiting for it to find your devices |
+| `not installed` | OpenRGB was not found. Install it, or set `openrgb.executable_path` |
+| `needs admin` | This OpenRGB only starts as administrator. Start it yourself, or use the Windows service option |
 | `no devices` | OpenRGB connected but exposed no usable devices |
 | `not found` | Python OpenRGB dependency is missing |
 
@@ -475,7 +491,13 @@ More detail: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 
 ### OpenRGB does not connect
 
-Open OpenRGB, go to **SDK Server**, click **Start Server**, then run:
+Hover over the LumiSync tray icon: the tooltip says whether your lights are connected, and the notification LumiSync shows says what to fix. Usually it is one of these:
+
+- OpenRGB is open with its server off: open its **SDK Server** tab and click **Start Server**.
+- OpenRGB is not installed, or installed in an unusual folder: install it, or set `openrgb.executable_path` in `config.toml`.
+- Another RGB app (Armoury Crate, iCUE, Synapse) holds the device: close it.
+
+Then run:
 
 ```powershell
 python -m lumisync --diagnostics

@@ -21,6 +21,7 @@ from lumisync.core.logging_setup import setup_logging
 from lumisync.core.smoothing import ColorSmoother
 from lumisync.diagnostics.diagnostics_report import DiagnosticsReport
 from lumisync.diagnostics.setup_check import SetupCheckReport
+from lumisync.ui.status_messages import describe_backend
 from lumisync.utils.display import screen_pixels_per_cm
 from lumisync.utils.startup import install_startup_shortcut, reconcile_startup, uninstall_startup_shortcut
 from lumisync.ui.tray import TrayIcon
@@ -57,6 +58,8 @@ class LumiSyncApp:
 
         self.window_finder = WindowFinder(self.config.window)
         self._window_fallback_logged = False
+        self._shown_report = None
+        self._shown_problem: str | None = None
         self.capturer = ScreenCapturer()
         # Created after the capturer so the display density is read with the
         # same DPI awareness that screen capture uses.
@@ -102,6 +105,7 @@ class LumiSyncApp:
 
         report = self.controllers.initialize()
         print(report.to_text(), flush=True)
+        self._show_backend_status()
 
         self._install_signal_handlers()
         try:
@@ -190,12 +194,29 @@ class LumiSyncApp:
             )
 
         updated = self.controllers.set_color(smoothed, region_colors)
+        if self.controllers.last_report is not self._shown_report:
+            self._show_backend_status()
         if updated or smoothed.distance(self.state.last_color) >= self.ACTIVITY_COLOR_DELTA:
             self._last_activity = time.monotonic()
         self.state.last_color = smoothed
         self.tray.update_color(smoothed)
         self._set_status("running" if updated else "running")
         self._update_overlay(frame.region, smoothed, sample.visual_debug)
+
+    def _show_backend_status(self) -> None:
+        """Put the RGB connection state in the tray, and pop up a fix when it breaks."""
+
+        report = self.controllers.last_report
+        self._shown_report = report
+        status = describe_backend(report)
+        problem = status.notice_message
+        # Only pop up when the problem changes, not on every reconnect attempt.
+        if problem and problem != self._shown_problem:
+            LOGGER.warning("%s: %s", status.notice_title, problem)
+            self.tray.set_status(status.tooltip, status.notice_title, problem)
+        else:
+            self.tray.set_status(status.tooltip)
+        self._shown_problem = problem
 
     def _capture_frame(self) -> CaptureFrame | None:
         mode = self.config.app.capture_mode.lower()

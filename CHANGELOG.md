@@ -6,6 +6,8 @@ All notable changes to LumiSync are documented here.
 
 ### Added
 
+- LumiSync starts OpenRGB's SDK server by itself when OpenRGB is installed but nothing is serving (`openrgb.auto_start`, `openrgb.executable_path`). It never starts a second copy while OpenRGB is open.
+- The tray icon shows whether your lights are connected, and pops up a notification with the fix when LumiSync cannot reach OpenRGB.
 - Linux support (X11): active-window tracking through python-xlib, global hotkeys through X11 key grabs (no root needed), start at login through `~/.config/autostart`, config and logs in `~/.config/LumiSync`, and a `build.sh` for a standalone Linux build. On Wayland, LumiSync falls back to monitor capture and `--setup-check` explains how to switch to an X11 session.
 - `requirements.txt` and `pyproject.toml` install only what each system needs, so a downloaded ZIP installs cleanly on Windows and Linux.
 - Small objects and corners no longer set the lights: colored objects under `min_focal_radius_cm` (1 cm on your real screen) only count in the center area, objects in the corners never count, and both are left out of the whole-screen color too. Screen size is detected automatically, with a `pixels_per_cm` override.

@@ -7,6 +7,7 @@ import socket
 import time
 from typing import Iterable
 
+from lumisync.backends import openrgb_launcher
 from lumisync.core.color import RGB
 from lumisync.core.config import AuraConfig, Config, OpenRgbConfig, RgbConfig
 
@@ -333,6 +334,7 @@ class OpenRgbController(RgbController):
                 "not found",
             ) from exc
 
+        self._start_openrgb_if_needed()
         self._wait_for_server()
 
         old_timeout = socket.getdefaulttimeout()
@@ -384,8 +386,55 @@ class OpenRgbController(RgbController):
         self._devices = []
         self.state.connected = False
 
-    def _wait_for_server(self) -> None:
-        timeout = max(0.1, float(self.openrgb_config.connection_timeout_seconds))
+    def _start_openrgb_if_needed(self) -> None:
+        """Start OpenRGB's SDK server when OpenRGB is installed but nothing is serving.
+
+        Only for a server on this PC, and never as a second copy of OpenRGB.
+        Raises ControllerUnavailable with a plain explanation when it cannot.
+        """
+
+        cfg = self.openrgb_config
+        if not cfg.auto_start or not openrgb_launcher.is_local_address(cfg.address):
+            return
+        probe_timeout = max(0.05, float(cfg.socket_timeout_seconds))
+        if openrgb_launcher.server_reachable(cfg.address, cfg.port, probe_timeout):
+            return
+
+        if openrgb_launcher.recently_launched():
+            # Started by us a moment ago and still finding devices. A quick
+            # check only, so the screen loop does not stall on every retry.
+            self._wait_for_server(status_on_timeout="starting")
+            return
+        if openrgb_launcher.openrgb_running():
+            raise ControllerUnavailable(
+                "OpenRGB is open but its SDK server is off. "
+                "In OpenRGB, open the SDK Server tab and click Start Server.",
+                "server off",
+            )
+
+        command = openrgb_launcher.find_openrgb(cfg.executable_path)
+        if command is None:
+            raise ControllerUnavailable(
+                "OpenRGB is not installed, or LumiSync could not find it. "
+                "Install it from openrgb.org, or set openrgb.executable_path in config.toml.",
+                "not installed",
+            )
+        try:
+            openrgb_launcher.launch(command, cfg.port)
+        except OSError as exc:
+            if getattr(exc, "winerror", None) == 740:
+                raise ControllerUnavailable(
+                    "OpenRGB needs administrator rights to start. Start OpenRGB yourself, "
+                    "or install it with its Windows service option so it starts with Windows.",
+                    "needs admin",
+                ) from exc
+            raise ControllerUnavailable(f"Could not start OpenRGB: {exc}", "not running") from exc
+        self._wait_for_server(timeout=float(cfg.auto_start_wait_seconds), status_on_timeout="starting")
+
+    def _wait_for_server(self, timeout: float | None = None, status_on_timeout: str | None = None) -> None:
+        if timeout is None:
+            timeout = float(self.openrgb_config.connection_timeout_seconds)
+        timeout = max(0.1, timeout)
         retry_interval = max(0.05, float(self.openrgb_config.retry_interval_seconds))
         socket_timeout = max(0.05, float(self.openrgb_config.socket_timeout_seconds))
         deadline = time.monotonic() + timeout
@@ -402,9 +451,10 @@ class OpenRgbController(RgbController):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 detail = f"last error: {last_error}" if last_error else "no response"
+                status = status_on_timeout or last_status
                 raise ControllerUnavailable(
-                    f"OpenRGB SDK server probe ended with {last_status}; {detail}",
-                    last_status,
+                    f"OpenRGB SDK server probe ended with {status}; {detail}",
+                    status,
                 )
 
             try:

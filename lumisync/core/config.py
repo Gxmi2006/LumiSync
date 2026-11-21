@@ -188,6 +188,11 @@ class OpenRgbConfig:
     socket_timeout_seconds: float = 0.35
     set_custom_mode: bool = True
     allow_all_devices_if_no_keyboard: bool = True
+    # Start OpenRGB's SDK server when it is installed but nothing is serving
+    # (never while OpenRGB is already open, to avoid two copies).
+    auto_start: bool = True
+    executable_path: str = ""  # empty: look in the usual install folders
+    auto_start_wait_seconds: float = 20.0
 
 
 @dataclass(slots=True)
@@ -418,6 +423,7 @@ def validate_config(config: Config, fix: bool = False) -> list[ConfigIssue]:
     clamp_number(config.openrgb, "connection_timeout_seconds", "openrgb.connection_timeout_seconds", 0.1, 30.0, 1.5)
     clamp_number(config.openrgb, "retry_interval_seconds", "openrgb.retry_interval_seconds", 0.05, 10.0, 0.25)
     clamp_number(config.openrgb, "socket_timeout_seconds", "openrgb.socket_timeout_seconds", 0.05, 10.0, 0.35)
+    clamp_number(config.openrgb, "auto_start_wait_seconds", "openrgb.auto_start_wait_seconds", 1.0, 120.0, 20.0)
 
     choice(config.palette, "fallback_mode", "palette.fallback_mode", {"scene_harmony", "dominant"}, "scene_harmony")
     choice(config.palette, "multi_color_mode", "palette.multi_color_mode", {"scene", "harmonic", "cinematic"}, "cinematic")

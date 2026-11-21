@@ -53,6 +53,41 @@ class TrayIcon:
         self._last_color = RGB(0, 128, 255)
         self._shown_color = self._last_color
         self._last_icon_update = 0.0
+        self._title = "LumiSync"
+        self._ready = False
+        self._pending_notice: tuple[str, str] | None = None
+
+    def set_status(self, tooltip: str, notice_title: str | None = None, notice_message: str | None = None) -> None:
+        """Show the connection state in the tooltip, and optionally pop up a notification."""
+
+        self._title = tooltip
+        if self._icon is not None:
+            try:
+                self._icon.title = tooltip
+            except Exception:
+                LOGGER.debug("Failed to update tray tooltip", exc_info=True)
+        if notice_title and notice_message:
+            if self._ready:
+                self._notify(notice_title, notice_message)
+            else:
+                self._pending_notice = (notice_title, notice_message)
+
+    def _notify(self, title: str, message: str) -> None:
+        if self._icon is None:
+            return
+        try:
+            self._icon.notify(message, title)
+        except Exception:
+            # Not every desktop supports tray notifications; the tooltip still shows it.
+            LOGGER.debug("Tray notification unavailable", exc_info=True)
+
+    def _on_ready(self, icon: object) -> None:
+        icon.visible = True
+        self._ready = True
+        if self._pending_notice is not None:
+            title, message = self._pending_notice
+            self._pending_notice = None
+            self._notify(title, message)
 
     def start(self) -> None:
         try:
@@ -76,7 +111,7 @@ class TrayIcon:
         self._icon = pystray.Icon(
             "LumiSync",
             self._make_image(self._last_color),
-            "LumiSync",
+            self._title,
             menu,
         )
         self._thread = Thread(target=self._run_icon, name="TrayIcon", daemon=True)
@@ -108,7 +143,7 @@ class TrayIcon:
     def _run_icon(self) -> None:
         assert self._icon is not None
         try:
-            self._icon.run()
+            self._icon.run(setup=self._on_ready)
         except Exception as exc:
             LOGGER.warning("Tray icon stopped: %s", exc)
 

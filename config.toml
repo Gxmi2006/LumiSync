@@ -128,6 +128,11 @@ retry_interval_seconds = 0.25
 socket_timeout_seconds = 0.35
 set_custom_mode = true
 allow_all_devices_if_no_keyboard = true
+# If OpenRGB is installed but its SDK server is not running, LumiSync starts it
+# (minimized to the tray). It never starts a second copy while OpenRGB is open.
+auto_start = true
+executable_path = ""                # empty = look in the usual install folders
+auto_start_wait_seconds = 20.0      # how long to wait for OpenRGB to find devices
 
 [overlay]
 enabled = false
