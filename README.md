@@ -640,7 +640,7 @@ LumiSync is free and open source. If it makes your setup better and you would li
 ## Credits
 
 - Promo reel voice-over generated with [ElevenLabs](https://elevenlabs.io) text-to-speech (voice: Liam).
-- Promo reel animated with [Remotion](https://www.remotion.dev) and [Three.js](https://threejs.org). Source in [`marketing/`](marketing/).
+- Promo reel animated with [Remotion](https://www.remotion.dev) and [Three.js](https://threejs.org).
 - RGB hardware control through [OpenRGB](https://openrgb.org).
 
 ## License
