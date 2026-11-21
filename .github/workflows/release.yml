@@ -1,0 +1,62 @@
+# Builds LumiSync.exe on GitHub and keeps one release, "LumiSync for Windows",
+# up to date with LumiSync-Windows.zip attached. The README download link
+# points at releases/latest/download/LumiSync-Windows.zip.
+name: Windows app release
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "lumisync/**"
+      - "requirements.txt"
+      - "config.toml"
+      - "build.ps1"
+      - "run_lumisync.py"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-app-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build LumiSync.exe
+        run: ./build.ps1
+
+      - name: Check the build
+        run: |
+          if (-not (Test-Path dist/LumiSync/LumiSync.exe)) { throw "LumiSync.exe was not built" }
+          if (-not (Test-Path dist/LumiSync/config.toml)) { throw "config.toml was not copied" }
+          Compress-Archive -Path dist/LumiSync/* -DestinationPath LumiSync-Windows.zip -CompressionLevel Optimal
+          "{0:N1} MB" -f ((Get-Item LumiSync-Windows.zip).Length / 1MB)
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Replace the previous release and its tag so the download always matches this commit.
+          gh release delete windows-app --yes --cleanup-tag 2>/dev/null || true
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/windows-app" 2>/dev/null || true
+          gh release create windows-app LumiSync-Windows.zip \
+            --title "LumiSync for Windows" \
+            --notes "Windows app, no Python needed. Download LumiSync-Windows.zip, extract it, and run LumiSync.exe. Start OpenRGB's SDK Server first. Full steps are in the README. Built automatically from commit ${{ github.sha }}." \
+            --target "${{ github.sha }}" \
+            --latest
